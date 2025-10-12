@@ -1,0 +1,28 @@
+{
+    "userID": "anon",
+    "timestamp": "2025-09-19T19:27:51.968Z",
+    "scenario": "collapsed",
+    "tags": [],
+    "config": {
+        "trustGrowth": {
+            "increment": 1,
+            "decrement": 1
+        },
+        "obligation": {
+            "proximityThreshold": 150,
+            "countMultiplier": 2,
+            "maxVectors": 500
+        }
+    },
+    "metrics": {
+        "avgTrust": 0,
+        "normAcknowledgment": {
+            "legal": 0,
+            "apriori": 0,
+            "care": 0,
+            "epistemic": 0
+        },
+        "affiliationEntropy": 4
+    },
+    "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: collapsed<br>\n      Norm Acknowledgment: legal: 0, apriori: 0, care: 0, epistemic: 0\n    "
+}

@@ -1,0 +1,1056 @@
+{
+    "date": "2025-08-12",
+    "tz": "America/Chicago",
+    "scenarios": {
+        "allCare": {
+            "runs": 1,
+            "agent_snapshot_rows": 899,
+            "agents": {
+                "avg_conflict": 0.0878754171301446,
+                "max_conflict": 2,
+                "avg_debt": 1.7185761957730812,
+                "max_debt": 9,
+                "avg_trustCount": 4.32369299221357,
+                "avg_trustMax": 0.10011123470522804,
+                "avg_momentum": 0.6719955506117903,
+                "attempts": 166,
+                "successes": 63,
+                "success_rate": 0.3795180722891566
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 215,
+                        "avgConflict": 0.06046511627906977,
+                        "avgDebt": 1.8930232558139535,
+                        "successRate": 0.3939393939393939
+                    },
+                    "care": {
+                        "n": 217,
+                        "avgConflict": 0.09216589861751152,
+                        "avgDebt": 1.6866359447004609,
+                        "successRate": 0.4318181818181818
+                    },
+                    "epistemic": {
+                        "n": 209,
+                        "avgConflict": 0.11004784688995216,
+                        "avgDebt": 1.722488038277512,
+                        "successRate": 0.3333333333333333
+                    },
+                    "legal": {
+                        "n": 258,
+                        "avgConflict": 0.08914728682170543,
+                        "avgDebt": 1.5968992248062015,
+                        "successRate": 0.3617021276595745
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 451,
+                        "avgConflict": 0.10643015521064302,
+                        "avgDebt": 1.711751662971175,
+                        "successRate": 0.32558139534883723
+                    },
+                    "reactive": {
+                        "n": 448,
+                        "avgConflict": 0.06919642857142858,
+                        "avgDebt": 1.7254464285714286,
+                        "successRate": 0.4375
+                    }
+                },
+                "role": {
+                    "disruptor": 226,
+                    "initiator": 227,
+                    "mediator": 219,
+                    "responder": 227
+                }
+            },
+            "obligations": {
+                "rows": 56020,
+                "issued": 56020,
+                "fulfilled": 1288,
+                "denied": 2399,
+                "expired": 40250,
+                "repaired": 12083,
+                "avg_strength": 0,
+                "completion_rate": 0.02299178864691182,
+                "denial_rate": 0.04282399143163156,
+                "expiry_rate": 0.7184933952159943,
+                "repair_rate": 0.21569082470546233
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T18:27:07.038Z",
+                "scenario": "allCare",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 4.759,
+                    "normAcknowledgment": {
+                        "legal": 0.216,
+                        "apriori": 0.253,
+                        "care": 0.717,
+                        "epistemic": 0.203
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: allCare<br>\n      Norm Acknowledgment: legal: 216, apriori: 253, care: 717, epistemic: 203\n    "
+            }
+        },
+        "allLegal": {
+            "runs": 1,
+            "agent_snapshot_rows": 887,
+            "agents": {
+                "avg_conflict": 0.06426155580608793,
+                "max_conflict": 2,
+                "avg_debt": 1.57271702367531,
+                "max_debt": 9,
+                "avg_trustCount": 3.627959413754228,
+                "avg_trustMax": 0.08568207440811725,
+                "avg_momentum": 0.65019503945885,
+                "attempts": 165,
+                "successes": 77,
+                "success_rate": 0.4666666666666667
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 168,
+                        "avgConflict": 0.06547619047619048,
+                        "avgDebt": 1.7083333333333333,
+                        "successRate": 0.5641025641025641
+                    },
+                    "care": {
+                        "n": 154,
+                        "avgConflict": 0.06493506493506493,
+                        "avgDebt": 1.3831168831168832,
+                        "successRate": 0.4230769230769231
+                    },
+                    "epistemic": {
+                        "n": 122,
+                        "avgConflict": 0.03278688524590164,
+                        "avgDebt": 1.139344262295082,
+                        "successRate": 0.5384615384615384
+                    },
+                    "legal": {
+                        "n": 443,
+                        "avgConflict": 0.07223476297968397,
+                        "avgDebt": 1.7065462753950338,
+                        "successRate": 0.42528735632183906
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 445,
+                        "avgConflict": 0.0651685393258427,
+                        "avgDebt": 1.4651685393258427,
+                        "successRate": 0.4578313253012048
+                    },
+                    "reactive": {
+                        "n": 442,
+                        "avgConflict": 0.06334841628959276,
+                        "avgDebt": 1.6809954751131222,
+                        "successRate": 0.47560975609756095
+                    }
+                },
+                "role": {
+                    "disruptor": 251,
+                    "initiator": 219,
+                    "mediator": 214,
+                    "responder": 203
+                }
+            },
+            "obligations": {
+                "rows": 7024,
+                "issued": 7024,
+                "fulfilled": 203,
+                "denied": 304,
+                "expired": 5348,
+                "repaired": 1169,
+                "avg_strength": 0,
+                "completion_rate": 0.028900911161731206,
+                "denial_rate": 0.04328018223234624,
+                "expiry_rate": 0.7613895216400911,
+                "repair_rate": 0.16642938496583143
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T12:58:28.991Z",
+                "scenario": "allLegal",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 3.59,
+                    "normAcknowledgment": {
+                        "legal": 0.919,
+                        "apriori": 0.064,
+                        "care": 0.16,
+                        "epistemic": 0.099
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: allLegal<br>\n      Norm Acknowledgment: legal: 919, apriori: 64, care: 160, epistemic: 99\n    "
+            }
+        },
+        "anomic": {
+            "runs": 1,
+            "agent_snapshot_rows": 453,
+            "agents": {
+                "avg_conflict": 0.08609271523178808,
+                "max_conflict": 2,
+                "avg_debt": 1.988962472406181,
+                "max_debt": 10,
+                "avg_trustCount": 3.6821192052980134,
+                "avg_trustMax": 0.07947019867549669,
+                "avg_momentum": 0.6286490066225163,
+                "attempts": 147,
+                "successes": 77,
+                "success_rate": 0.5238095238095238
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 106,
+                        "avgConflict": 0.11320754716981132,
+                        "avgDebt": 1.990566037735849,
+                        "successRate": 0.5897435897435898
+                    },
+                    "care": {
+                        "n": 132,
+                        "avgConflict": 0.10606060606060606,
+                        "avgDebt": 1.9924242424242424,
+                        "successRate": 0.3902439024390244
+                    },
+                    "epistemic": {
+                        "n": 116,
+                        "avgConflict": 0.08620689655172414,
+                        "avgDebt": 1.9051724137931034,
+                        "successRate": 0.46875
+                    },
+                    "legal": {
+                        "n": 99,
+                        "avgConflict": 0.030303030303030304,
+                        "avgDebt": 2.080808080808081,
+                        "successRate": 0.6571428571428571
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 231,
+                        "avgConflict": 0.08658008658008658,
+                        "avgDebt": 2.1774891774891776,
+                        "successRate": 0.5795454545454546
+                    },
+                    "reactive": {
+                        "n": 222,
+                        "avgConflict": 0.08558558558558559,
+                        "avgDebt": 1.7927927927927927,
+                        "successRate": 0.4406779661016949
+                    }
+                },
+                "role": {
+                    "disruptor": 132,
+                    "initiator": 115,
+                    "mediator": 115,
+                    "responder": 91
+                }
+            },
+            "obligations": {
+                "rows": 4199,
+                "issued": 4199,
+                "fulfilled": 182,
+                "denied": 175,
+                "expired": 3397,
+                "repaired": 445,
+                "avg_strength": 0,
+                "completion_rate": 0.043343653250773995,
+                "denial_rate": 0.04167658966420576,
+                "expiry_rate": 0.8090021433674685,
+                "repair_rate": 0.1059776137175518
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T12:54:51.971Z",
+                "scenario": "anomic",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 4.088495575221239,
+                    "normAcknowledgment": {
+                        "legal": 0.8778761061946903,
+                        "apriori": 0.7929203539823009,
+                        "care": 0.8194690265486726,
+                        "epistemic": 0.8530973451327434
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: anomic<br>\n      Norm Acknowledgment: legal: 496, apriori: 448, care: 463, epistemic: 482\n    "
+            }
+        },
+        "asymmetryOnly": {
+            "runs": 2,
+            "agent_snapshot_rows": 1240,
+            "agents": {
+                "avg_conflict": 0.15483870967741936,
+                "max_conflict": 4,
+                "avg_debt": 2.820161290322581,
+                "max_debt": 25,
+                "avg_trustCount": 5.654032258064516,
+                "avg_trustMax": 0.0935483870967742,
+                "avg_momentum": 0.6754870967741942,
+                "attempts": 355,
+                "successes": 99,
+                "success_rate": 0.27887323943661974
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 295,
+                        "avgConflict": 0.15932203389830507,
+                        "avgDebt": 2.888135593220339,
+                        "successRate": 0.2553191489361702
+                    },
+                    "care": {
+                        "n": 308,
+                        "avgConflict": 0.12337662337662338,
+                        "avgDebt": 2.75974025974026,
+                        "successRate": 0.37662337662337664
+                    },
+                    "epistemic": {
+                        "n": 367,
+                        "avgConflict": 0.16621253405994552,
+                        "avgDebt": 2.893732970027248,
+                        "successRate": 0.2909090909090909
+                    },
+                    "legal": {
+                        "n": 270,
+                        "avgConflict": 0.17037037037037037,
+                        "avgDebt": 2.714814814814815,
+                        "successRate": 0.1891891891891892
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 600,
+                        "avgConflict": 0.145,
+                        "avgDebt": 2.7783333333333333,
+                        "successRate": 0.3
+                    },
+                    "reactive": {
+                        "n": 640,
+                        "avgConflict": 0.1640625,
+                        "avgDebt": 2.859375,
+                        "successRate": 0.26153846153846155
+                    }
+                },
+                "role": {
+                    "disruptor": 310,
+                    "initiator": 309,
+                    "mediator": 313,
+                    "responder": 308
+                }
+            },
+            "obligations": {
+                "rows": 11736,
+                "issued": 11736,
+                "fulfilled": 283,
+                "denied": 678,
+                "expired": 9696,
+                "repaired": 1079,
+                "avg_strength": 0,
+                "completion_rate": 0.024113837764144514,
+                "denial_rate": 0.057770961145194276,
+                "expiry_rate": 0.8261758691206544,
+                "repair_rate": 0.09193933197000681
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T21:29:00.669Z",
+                "scenario": "asymmetryOnly",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 6.128939828080229,
+                    "normAcknowledgment": {
+                        "legal": 0.1833810888252149,
+                        "apriori": 0.15472779369627507,
+                        "care": 0.1819484240687679,
+                        "epistemic": 0.22779369627507162
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: asymmetryOnly<br>\n      Norm Acknowledgment: legal: 128, apriori: 108, care: 127, epistemic: 159\n    "
+            }
+        },
+        "authoritarian": {
+            "runs": 2,
+            "agent_snapshot_rows": 1330,
+            "agents": {
+                "avg_conflict": 0.11052631578947368,
+                "max_conflict": 4,
+                "avg_debt": 2.308270676691729,
+                "max_debt": 21,
+                "avg_trustCount": 4.435338345864662,
+                "avg_trustMax": 0.0887218045112782,
+                "avg_momentum": 0.627304511278195,
+                "attempts": 320,
+                "successes": 111,
+                "success_rate": 0.346875
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 331,
+                        "avgConflict": 0.0755287009063444,
+                        "avgDebt": 2.308157099697885,
+                        "successRate": 0.3918918918918919
+                    },
+                    "care": {
+                        "n": 262,
+                        "avgConflict": 0.12213740458015267,
+                        "avgDebt": 2.3702290076335877,
+                        "successRate": 0.3620689655172414
+                    },
+                    "epistemic": {
+                        "n": 391,
+                        "avgConflict": 0.1329923273657289,
+                        "avgDebt": 2.217391304347826,
+                        "successRate": 0.2621359223300971
+                    },
+                    "legal": {
+                        "n": 346,
+                        "avgConflict": 0.10982658959537572,
+                        "avgDebt": 2.3641618497109826,
+                        "successRate": 0.4
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 634,
+                        "avgConflict": 0.12302839116719243,
+                        "avgDebt": 2.4258675078864353,
+                        "successRate": 0.3728813559322034
+                    },
+                    "reactive": {
+                        "n": 696,
+                        "avgConflict": 0.09913793103448276,
+                        "avgDebt": 2.2011494252873565,
+                        "successRate": 0.3146853146853147
+                    }
+                },
+                "role": {
+                    "disruptor": 316,
+                    "initiator": 335,
+                    "mediator": 311,
+                    "responder": 368
+                }
+            },
+            "obligations": {
+                "rows": 10413,
+                "issued": 10413,
+                "fulfilled": 270,
+                "denied": 534,
+                "expired": 9125,
+                "repaired": 484,
+                "avg_strength": 0,
+                "completion_rate": 0.02592912705272256,
+                "denial_rate": 0.05128205128205128,
+                "expiry_rate": 0.8763084605781235,
+                "repair_rate": 0.04648036108710266
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T20:30:26.444Z",
+                "scenario": "authoritarian",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 5.239,
+                    "normAcknowledgment": {
+                        "legal": 0.845,
+                        "apriori": 0.092,
+                        "care": 0.087,
+                        "epistemic": 0.137
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: authoritarian<br>\n      Norm Acknowledgment: legal: 845, apriori: 92, care: 87, epistemic: 137\n    "
+            }
+        },
+        "collapsed": {
+            "runs": 1,
+            "agent_snapshot_rows": 558,
+            "agents": {
+                "avg_conflict": 0.13978494623655913,
+                "max_conflict": 2,
+                "avg_debt": 2.578853046594982,
+                "max_debt": 15,
+                "avg_trustCount": 5.759856630824372,
+                "avg_trustMax": 0.09498207885304659,
+                "avg_momentum": 0.6682508960573473,
+                "attempts": 183,
+                "successes": 46,
+                "success_rate": 0.25136612021857924
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 160,
+                        "avgConflict": 0.10625,
+                        "avgDebt": 2.31875,
+                        "successRate": 0.21428571428571427
+                    },
+                    "care": {
+                        "n": 128,
+                        "avgConflict": 0.1953125,
+                        "avgDebt": 2.734375,
+                        "successRate": 0.3090909090909091
+                    },
+                    "epistemic": {
+                        "n": 122,
+                        "avgConflict": 0.14754098360655737,
+                        "avgDebt": 2.918032786885246,
+                        "successRate": 0.16666666666666666
+                    },
+                    "legal": {
+                        "n": 148,
+                        "avgConflict": 0.12162162162162163,
+                        "avgDebt": 2.445945945945946,
+                        "successRate": 0.29545454545454547
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 276,
+                        "avgConflict": 0.14130434782608695,
+                        "avgDebt": 2.3659420289855073,
+                        "successRate": 0.22093023255813954
+                    },
+                    "reactive": {
+                        "n": 282,
+                        "avgConflict": 0.13829787234042554,
+                        "avgDebt": 2.7872340425531914,
+                        "successRate": 0.27835051546391754
+                    }
+                },
+                "role": {
+                    "disruptor": 137,
+                    "initiator": 134,
+                    "mediator": 136,
+                    "responder": 151
+                }
+            },
+            "obligations": {
+                "rows": 6455,
+                "issued": 6455,
+                "fulfilled": 154,
+                "denied": 422,
+                "expired": 4888,
+                "repaired": 991,
+                "avg_strength": 0,
+                "completion_rate": 0.0238574748257165,
+                "denial_rate": 0.06537567776917118,
+                "expiry_rate": 0.7572424477149496,
+                "repair_rate": 0.15352439969016266
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T15:34:35.747Z",
+                "scenario": "collapsed",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 5.768688293370945,
+                    "normAcknowledgment": {
+                        "legal": 0.09026798307475317,
+                        "apriori": 0.05923836389280677,
+                        "care": 0.10296191819464035,
+                        "epistemic": 0.12693935119887165
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: collapsed<br>\n      Norm Acknowledgment: legal: 64, apriori: 42, care: 73, epistemic: 90\n    "
+            }
+        },
+        "genocideShock": {
+            "runs": 1,
+            "agent_snapshot_rows": 865,
+            "agents": {
+                "avg_conflict": 0.09364161849710982,
+                "max_conflict": 2,
+                "avg_debt": 1.716763005780347,
+                "max_debt": 9,
+                "avg_trustCount": 4.3919075144508675,
+                "avg_trustMax": 0.08208092485549133,
+                "avg_momentum": 0.6658485549132949,
+                "attempts": 178,
+                "successes": 49,
+                "success_rate": 0.2752808988764045
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 181,
+                        "avgConflict": 0.07734806629834254,
+                        "avgDebt": 1.6961325966850829,
+                        "successRate": 0.2777777777777778
+                    },
+                    "care": {
+                        "n": 231,
+                        "avgConflict": 0.06926406926406926,
+                        "avgDebt": 1.7359307359307359,
+                        "successRate": 0.2564102564102564
+                    },
+                    "epistemic": {
+                        "n": 190,
+                        "avgConflict": 0.11578947368421053,
+                        "avgDebt": 1.7157894736842105,
+                        "successRate": 0.20930232558139536
+                    },
+                    "legal": {
+                        "n": 263,
+                        "avgConflict": 0.11026615969581749,
+                        "avgDebt": 1.714828897338403,
+                        "successRate": 0.3333333333333333
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 440,
+                        "avgConflict": 0.07727272727272727,
+                        "avgDebt": 1.8,
+                        "successRate": 0.375
+                    },
+                    "reactive": {
+                        "n": 425,
+                        "avgConflict": 0.11058823529411765,
+                        "avgDebt": 1.6305882352941177,
+                        "successRate": 0.17777777777777778
+                    }
+                },
+                "role": {
+                    "disruptor": 220,
+                    "initiator": 204,
+                    "mediator": 236,
+                    "responder": 205
+                }
+            },
+            "obligations": {
+                "rows": 12593,
+                "issued": 12593,
+                "fulfilled": 267,
+                "denied": 627,
+                "expired": 9330,
+                "repaired": 2369,
+                "avg_strength": 0,
+                "completion_rate": 0.021202255221154608,
+                "denial_rate": 0.04978956563170015,
+                "expiry_rate": 0.7408877948066386,
+                "repair_rate": 0.18812038434050662
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T17:52:35.390Z",
+                "scenario": "genocideShock",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 4.629,
+                    "normAcknowledgment": {
+                        "legal": 0.131,
+                        "apriori": 0.139,
+                        "care": 0.096,
+                        "epistemic": 0.085
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: genocideShock<br>\n      Norm Acknowledgment: legal: 131, apriori: 139, care: 96, epistemic: 85\n    "
+            }
+        },
+        "noApriori": {
+            "runs": 1,
+            "agent_snapshot_rows": 893,
+            "agents": {
+                "avg_conflict": 0.060470324748040316,
+                "max_conflict": 3,
+                "avg_debt": 1.5688689809630458,
+                "max_debt": 9,
+                "avg_trustCount": 4.016797312430011,
+                "avg_trustMax": 0.1276595744680851,
+                "avg_momentum": 0.6876282194848814,
+                "attempts": 168,
+                "successes": 85,
+                "success_rate": 0.5059523809523809
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 187,
+                        "avgConflict": 0.08021390374331551,
+                        "avgDebt": 1.5133689839572193,
+                        "successRate": 0.43243243243243246
+                    },
+                    "care": {
+                        "n": 239,
+                        "avgConflict": 0.05439330543933055,
+                        "avgDebt": 1.7322175732217573,
+                        "successRate": 0.55
+                    },
+                    "epistemic": {
+                        "n": 245,
+                        "avgConflict": 0.07346938775510205,
+                        "avgDebt": 1.5142857142857142,
+                        "successRate": 0.5192307692307693
+                    },
+                    "legal": {
+                        "n": 222,
+                        "avgConflict": 0.036036036036036036,
+                        "avgDebt": 1.5,
+                        "successRate": 0.5128205128205128
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 442,
+                        "avgConflict": 0.06561085972850679,
+                        "avgDebt": 1.5542986425339367,
+                        "successRate": 0.46511627906976744
+                    },
+                    "reactive": {
+                        "n": 451,
+                        "avgConflict": 0.05543237250554324,
+                        "avgDebt": 1.583148558758315,
+                        "successRate": 0.5487804878048781
+                    }
+                },
+                "role": {
+                    "disruptor": 234,
+                    "initiator": 231,
+                    "mediator": 232,
+                    "responder": 196
+                }
+            },
+            "obligations": {
+                "rows": 13900,
+                "issued": 13900,
+                "fulfilled": 473,
+                "denied": 487,
+                "expired": 10235,
+                "repaired": 2705,
+                "avg_strength": 0,
+                "completion_rate": 0.03402877697841727,
+                "denial_rate": 0.03503597122302158,
+                "expiry_rate": 0.7363309352517986,
+                "repair_rate": 0.19460431654676258
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T18:00:14.532Z",
+                "scenario": "noApriori",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 4.469,
+                    "normAcknowledgment": {
+                        "legal": 0.911,
+                        "apriori": 0.127,
+                        "care": 0.912,
+                        "epistemic": 0.898
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: noApriori<br>\n      Norm Acknowledgment: legal: 911, apriori: 127, care: 912, epistemic: 898\n    "
+            }
+        },
+        "pluralist": {
+            "runs": 1,
+            "agent_snapshot_rows": 369,
+            "agents": {
+                "avg_conflict": 0.16260162601626016,
+                "max_conflict": 2,
+                "avg_debt": 3.130081300813008,
+                "max_debt": 12,
+                "avg_trustCount": 6.355013550135501,
+                "avg_trustMax": 0.10840108401084012,
+                "avg_momentum": 0.6529620596205961,
+                "attempts": 150,
+                "successes": 51,
+                "success_rate": 0.34
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 91,
+                        "avgConflict": 0.17582417582417584,
+                        "avgDebt": 3.21978021978022,
+                        "successRate": 0.25
+                    },
+                    "care": {
+                        "n": 86,
+                        "avgConflict": 0.18604651162790697,
+                        "avgDebt": 3.0930232558139537,
+                        "successRate": 0.3617021276595745
+                    },
+                    "epistemic": {
+                        "n": 93,
+                        "avgConflict": 0.12903225806451613,
+                        "avgDebt": 3.4086021505376345,
+                        "successRate": 0.3783783783783784
+                    },
+                    "legal": {
+                        "n": 99,
+                        "avgConflict": 0.16161616161616163,
+                        "avgDebt": 2.8181818181818183,
+                        "successRate": 0.38461538461538464
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 179,
+                        "avgConflict": 0.1452513966480447,
+                        "avgDebt": 3.022346368715084,
+                        "successRate": 0.30985915492957744
+                    },
+                    "reactive": {
+                        "n": 190,
+                        "avgConflict": 0.17894736842105263,
+                        "avgDebt": 3.231578947368421,
+                        "successRate": 0.3670886075949367
+                    }
+                },
+                "role": {
+                    "disruptor": 104,
+                    "initiator": 86,
+                    "mediator": 83,
+                    "responder": 96
+                }
+            },
+            "obligations": {
+                "rows": 4781,
+                "issued": 4781,
+                "fulfilled": 112,
+                "denied": 217,
+                "expired": 3788,
+                "repaired": 664,
+                "avg_strength": 0,
+                "completion_rate": 0.02342606149341142,
+                "denial_rate": 0.04538799414348463,
+                "expiry_rate": 0.7923028655093077,
+                "repair_rate": 0.13888307885379628
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T20:01:17.390Z",
+                "scenario": "pluralist",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 6.718681318681319,
+                    "normAcknowledgment": {
+                        "legal": 0.48131868131868133,
+                        "apriori": 0.4857142857142857,
+                        "care": 0.5010989010989011,
+                        "epistemic": 0.4879120879120879
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: pluralist<br>\n      Norm Acknowledgment: legal: 219, apriori: 221, care: 228, epistemic: 222\n    "
+            }
+        },
+        "utopian": {
+            "runs": 1,
+            "agent_snapshot_rows": 358,
+            "agents": {
+                "avg_conflict": 0.07541899441340782,
+                "max_conflict": 2,
+                "avg_debt": 1.9860335195530727,
+                "max_debt": 11,
+                "avg_trustCount": 3.3715083798882683,
+                "avg_trustMax": 0.05307262569832402,
+                "avg_momentum": 0.6428407821229057,
+                "attempts": 144,
+                "successes": 91,
+                "success_rate": 0.6319444444444444
+            },
+            "breakdowns": {
+                "normPref": {
+                    "apriori": {
+                        "n": 75,
+                        "avgConflict": 0.02666666666666667,
+                        "avgDebt": 1.6933333333333334,
+                        "successRate": 0.75
+                    },
+                    "care": {
+                        "n": 85,
+                        "avgConflict": 0.08235294117647059,
+                        "avgDebt": 2.164705882352941,
+                        "successRate": 0.627906976744186
+                    },
+                    "epistemic": {
+                        "n": 73,
+                        "avgConflict": 0.0958904109589041,
+                        "avgDebt": 2.2465753424657535,
+                        "successRate": 0.52
+                    },
+                    "legal": {
+                        "n": 125,
+                        "avgConflict": 0.088,
+                        "avgDebt": 1.888,
+                        "successRate": 0.625
+                    }
+                },
+                "moralStance": {
+                    "proactive": {
+                        "n": 178,
+                        "avgConflict": 0.06741573033707865,
+                        "avgDebt": 2.044943820224719,
+                        "successRate": 0.6029411764705882
+                    },
+                    "reactive": {
+                        "n": 180,
+                        "avgConflict": 0.08333333333333333,
+                        "avgDebt": 1.9277777777777778,
+                        "successRate": 0.6578947368421053
+                    }
+                },
+                "role": {
+                    "disruptor": 95,
+                    "initiator": 88,
+                    "mediator": 91,
+                    "responder": 84
+                }
+            },
+            "obligations": {
+                "rows": 2951,
+                "issued": 2951,
+                "fulfilled": 134,
+                "denied": 89,
+                "expired": 2472,
+                "repaired": 256,
+                "avg_strength": 0,
+                "completion_rate": 0.04540833615723484,
+                "denial_rate": 0.0301592680447306,
+                "expiry_rate": 0.8376821416468994,
+                "repair_rate": 0.08675025415113521
+            },
+            "params": {
+                "userID": "anon",
+                "timestamp": "2025-08-12T12:52:31.692Z",
+                "scenario": "utopian",
+                "tags": [],
+                "config": {
+                    "trustGrowth": {
+                        "increment": 1,
+                        "decrement": 1
+                    },
+                    "obligation": {
+                        "proximityThreshold": 150,
+                        "countMultiplier": 2,
+                        "maxVectors": 500
+                    }
+                },
+                "metrics": {
+                    "avgTrust": 3.8689655172413793,
+                    "normAcknowledgment": {
+                        "legal": 0.9793103448275862,
+                        "apriori": 0.9218390804597701,
+                        "care": 0.9494252873563218,
+                        "epistemic": 0.960919540229885
+                    },
+                    "affiliationEntropy": 4
+                },
+                "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: utopian<br>\n      Norm Acknowledgment: legal: 426, apriori: 401, care: 413, epistemic: 418\n    "
+            }
+        }
+    }
+}

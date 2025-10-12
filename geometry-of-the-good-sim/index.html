@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SimEthica – Agent–Obligation Simulation</title>
+
+  <!-- Inline a tiny blank favicon to kill the 404 -->
+  <link rel="icon"
+        href="data:image/x-icon;base64,AAABAAEAEBAAAAAAIABoAwAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=" />
+
+  <style>
+    body{margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#fafafa;}
+    #branding{background:#222;color:#fff;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;position:relative;z-index:1000}
+    #branding h1{margin:0;font-size:20px;font-weight:bold}
+    #branding span{font-size:14px;opacity:.85}
+    #sketch-holder{position:relative;width:100vw;height:calc(100vh - 50px);overflow:hidden}
+    #scroll-hint{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,.9);padding:6px 12px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:14px;box-shadow:0 2px 4px rgba(0,0,0,.2);z-index:999;animation:bounce 1.5s infinite;user-select:none}
+    @keyframes bounce{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(6px)}}
+  </style>
+  <script>
+    function scrollToBottom(){window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});}
+  </script>
+</head>
+<body>
+  <div id="branding">
+    <h1>SimEthica</h1>
+    <span>© David Koepsell</span>
+  </div>
+  <div id="sketch-holder"></div>
+  <div id="scroll-hint" onclick="scrollToBottom()">⬇︎ Scroll for options ⬇︎</div>
+
+  <!-- p5 core -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.2/p5.min.js"></script>
+
+  <!-- IMPORTANT: load config first as a module (exports + window.* set) -->
+  <script type="module" src="./sim/config.js"></script>
+
+  <!-- rest of your scripts (module or classic) can now safely rely on config -->
+  <script src="./sim/deep-time.js"></script>
+  <script type="module" src="./sim/norms.js"></script>
+  <script type="module" src="./sim/agent.js"></script>
+  <script type="module" src="./sim/gui.js"></script>
+  <script type="module" src="./sim/scenarios.js"></script>
+
+  <!-- entry point last -->
+  <script type="module" src="./sim/sketch.js"></script>
+</body>
+</html>

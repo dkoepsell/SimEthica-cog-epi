@@ -1,0 +1,28 @@
+{
+    "userID": "anon",
+    "timestamp": "2025-08-31T22:10:29.780Z",
+    "scenario": "pluralist",
+    "tags": [],
+    "config": {
+        "trustGrowth": {
+            "increment": 1,
+            "decrement": 1
+        },
+        "obligation": {
+            "proximityThreshold": 150,
+            "countMultiplier": 2,
+            "maxVectors": 500
+        }
+    },
+    "metrics": {
+        "avgTrust": 1.4535875564475664,
+        "normAcknowledgment": {
+            "legal": 0.44606121424987455,
+            "apriori": 0.45308580030105366,
+            "care": 0.4024084295032614,
+            "epistemic": 0.5348720521826392
+        },
+        "affiliationEntropy": 4
+    },
+    "summary": "\n      <strong>Summary \u2014 Final</strong><br>\n      Scenario: pluralist<br>\n      Norm Acknowledgment: legal: 889, apriori: 903, care: 802, epistemic: 1066\n    "
+}

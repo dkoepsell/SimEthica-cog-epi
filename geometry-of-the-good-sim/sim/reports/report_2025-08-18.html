@@ -1,0 +1,434 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SimEthica Daily Report — 2025-08-18</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--ink:#222;--muted:#666;--line:#eee;--bg:#fafafa;--brand:#222;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;margin:0;color:var(--ink);background:var(--bg)}
+    header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--brand);color:#fff;position:sticky;top:0;z-index:10}
+    header .logo{font-weight:800;letter-spacing:.3px}
+    header .right{margin-left:auto;opacity:.85}
+    main{padding:24px}
+    h1{margin:0 0 4px} .sub{color:var(--muted);margin:0 0 16px}
+    .card{border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;box-shadow:0 1px 3px rgba(0,0,0,0.04);background:#fff}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    table{border-collapse:collapse;width:100%;margin:8px 0} th,td{border-bottom:1px solid #f1f1f1;padding:8px;text-align:left}
+    th{background:#fbfbfb}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#f5f5f5;color:#333}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    .ai{background:#fbfbfb;border:1px dashed #ddd}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">SimEthica</div>
+    <div style="font-weight:600">Daily Reports</div>
+    <div class="right">© David Koepsell</div>
+  </header>
+
+  <main>
+    <h1>SimEthica Daily Report</h1>
+    <p class="sub">Date: <strong>2025-08-18</strong> <span class="pill">America/Chicago</span></p>
+
+    
+        <div class="card">
+      <h2>Scenario: asymmetryOnly</h2>
+
+      <div class="grid">
+        <div><strong>Runs</strong><br>2</div>
+        <div><strong>Agent snapshot rows</strong><br>4,404</div>
+        <div><strong>Obligation rows</strong><br>1,294</div>
+      </div>
+
+      <h3>Agent snapshot (last generation of each file)</h3>
+      <table>
+        <tr>
+          <th>Avg Conflict</th><th>Max Conflict</th>
+          <th>Avg Debt</th><th>Max Debt</th>
+          <th>Avg TrustCount</th><th>Avg TrustMax</th>
+          <th>Avg Momentum</th><th>Success Rate</th>
+        </tr>
+        <tr>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.00</td>
+          <td>0.00</td>
+          <td>0.640</td>
+          <td>—</td>
+        </tr>
+      </table>
+
+      <h3>Breakdown by <code>normPref</code></h3>
+      <table>
+        <tr><th>normPref</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>apriori</td>
+          <td>1,092</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>care</td>
+          <td>1,046</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>epistemic</td>
+          <td>1,065</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>legal</td>
+          <td>1,201</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+              </table>
+
+      <h3>Breakdown by <code>moralStance</code></h3>
+      <table>
+        <tr><th>moralStance</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>proactive</td>
+          <td>2,200</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>reactive</td>
+          <td>2,204</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+              </table>
+
+      <h3>Role mix</h3>
+      <table>
+        <tr><th>Role</th><th>Count</th></tr>
+                <tr><td>disruptor</td><td>1,072</td></tr>
+                <tr><td>initiator</td><td>1,111</td></tr>
+                <tr><td>mediator</td><td>1,152</td></tr>
+                <tr><td>responder</td><td>1,069</td></tr>
+              </table>
+
+      <h3>Obligations (day totals)</h3>
+      <table>
+        <tr><th>Issued</th><th>Fulfilled</th><th>Denied</th><th>Expired</th><th>Repaired</th><th>Avg Strength</th></tr>
+        <tr>
+          <td>1,294</td>
+          <td>58</td>
+          <td>132</td>
+          <td>1,104</td>
+          <td>0</td>
+          <td>0.000</td>
+        </tr>
+      </table>
+      <table>
+        <tr><th>Completion</th><th>Denial</th><th>Expiry</th><th>Repair</th></tr>
+        <tr>
+          <td>4.5%</td>
+          <td>10.2%</td>
+          <td>85.3%</td>
+          <td>0.0%</td>
+        </tr>
+      </table>
+
+            <h3>Run parameters (merged)</h3>
+      <div class="grid">
+                  <div><strong>userID</strong><br>anon</div>
+                  <div><strong>timestamp</strong><br>2025-08-18T22:40:51.086Z</div>
+                  <div><strong>scenario</strong><br>asymmetryOnly</div>
+                  <div><strong>tags</strong><br>[obj]</div>
+                  <div><strong>config</strong><br>[obj]</div>
+                  <div><strong>metrics</strong><br>[obj]</div>
+                  <div><strong>summary</strong><br>
+      &lt;strong&gt;Summary — Final&lt;/strong&gt;&lt;br&gt;
+      Scenario: asymmetryOnly&lt;br&gt;
+      Norm Acknowledgment: legal: 606, apriori: 422, care: 298, epistemic: 750
+    </div>
+              </div>
+          </div>
+        <div class="card">
+      <h2>Scenario: noApriori</h2>
+
+      <div class="grid">
+        <div><strong>Runs</strong><br>3</div>
+        <div><strong>Agent snapshot rows</strong><br>6,364</div>
+        <div><strong>Obligation rows</strong><br>2,939</div>
+      </div>
+
+      <h3>Agent snapshot (last generation of each file)</h3>
+      <table>
+        <tr>
+          <th>Avg Conflict</th><th>Max Conflict</th>
+          <th>Avg Debt</th><th>Max Debt</th>
+          <th>Avg TrustCount</th><th>Avg TrustMax</th>
+          <th>Avg Momentum</th><th>Success Rate</th>
+        </tr>
+        <tr>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>0.00</td>
+          <td>0.00</td>
+          <td>0.654</td>
+          <td>—</td>
+        </tr>
+      </table>
+
+      <h3>Breakdown by <code>normPref</code></h3>
+      <table>
+        <tr><th>normPref</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>apriori</td>
+          <td>1,461</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>care</td>
+          <td>1,778</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>epistemic</td>
+          <td>1,536</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>legal</td>
+          <td>1,589</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+              </table>
+
+      <h3>Breakdown by <code>moralStance</code></h3>
+      <table>
+        <tr><th>moralStance</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>proactive</td>
+          <td>3,171</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+                <tr>
+          <td>reactive</td>
+          <td>3,193</td>
+          <td>0.000</td>
+          <td>0.000</td>
+          <td>—</td>
+        </tr>
+              </table>
+
+      <h3>Role mix</h3>
+      <table>
+        <tr><th>Role</th><th>Count</th></tr>
+                <tr><td>disruptor</td><td>1,569</td></tr>
+                <tr><td>initiator</td><td>1,582</td></tr>
+                <tr><td>mediator</td><td>1,598</td></tr>
+                <tr><td>responder</td><td>1,615</td></tr>
+              </table>
+
+      <h3>Obligations (day totals)</h3>
+      <table>
+        <tr><th>Issued</th><th>Fulfilled</th><th>Denied</th><th>Expired</th><th>Repaired</th><th>Avg Strength</th></tr>
+        <tr>
+          <td>2,939</td>
+          <td>1,355</td>
+          <td>1,569</td>
+          <td>0</td>
+          <td>15</td>
+          <td>0.000</td>
+        </tr>
+      </table>
+      <table>
+        <tr><th>Completion</th><th>Denial</th><th>Expiry</th><th>Repair</th></tr>
+        <tr>
+          <td>46.1%</td>
+          <td>53.4%</td>
+          <td>0.0%</td>
+          <td>0.5%</td>
+        </tr>
+      </table>
+
+            <h3>Run parameters (merged)</h3>
+      <div class="grid">
+                  <div><strong>userID</strong><br>anon</div>
+                  <div><strong>timestamp</strong><br>2025-08-18T20:18:46.616Z</div>
+                  <div><strong>scenario</strong><br>noApriori</div>
+                  <div><strong>tags</strong><br>[obj]</div>
+                  <div><strong>config</strong><br>[obj]</div>
+                  <div><strong>metrics</strong><br>[obj]</div>
+                  <div><strong>summary</strong><br>
+      &lt;strong&gt;Summary — Final&lt;/strong&gt;&lt;br&gt;
+      Scenario: noApriori&lt;br&gt;
+      Norm Acknowledgment: legal: 1611, apriori: 199, care: 1506, epistemic: 1544
+    </div>
+              </div>
+          </div>
+        <div class="card">
+      <h2>Scenario: pluralist</h2>
+
+      <div class="grid">
+        <div><strong>Runs</strong><br>1</div>
+        <div><strong>Agent snapshot rows</strong><br>118</div>
+        <div><strong>Obligation rows</strong><br>588</div>
+      </div>
+
+      <h3>Agent snapshot (last generation of each file)</h3>
+      <table>
+        <tr>
+          <th>Avg Conflict</th><th>Max Conflict</th>
+          <th>Avg Debt</th><th>Max Debt</th>
+          <th>Avg TrustCount</th><th>Avg TrustMax</th>
+          <th>Avg Momentum</th><th>Success Rate</th>
+        </tr>
+        <tr>
+          <td>0.093</td>
+          <td>1.000</td>
+          <td>1.686</td>
+          <td>7.000</td>
+          <td>2.82</td>
+          <td>0.10</td>
+          <td>0.643</td>
+          <td>33.3%</td>
+        </tr>
+      </table>
+
+      <h3>Breakdown by <code>normPref</code></h3>
+      <table>
+        <tr><th>normPref</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>apriori</td>
+          <td>25</td>
+          <td>0.080</td>
+          <td>2.080</td>
+          <td>0.0%</td>
+        </tr>
+                <tr>
+          <td>care</td>
+          <td>37</td>
+          <td>0.081</td>
+          <td>1.459</td>
+          <td>54.5%</td>
+        </tr>
+                <tr>
+          <td>epistemic</td>
+          <td>29</td>
+          <td>0.034</td>
+          <td>1.552</td>
+          <td>33.3%</td>
+        </tr>
+                <tr>
+          <td>legal</td>
+          <td>27</td>
+          <td>0.185</td>
+          <td>1.778</td>
+          <td>20.0%</td>
+        </tr>
+              </table>
+
+      <h3>Breakdown by <code>moralStance</code></h3>
+      <table>
+        <tr><th>moralStance</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>proactive</td>
+          <td>66</td>
+          <td>0.076</td>
+          <td>1.758</td>
+          <td>30.0%</td>
+        </tr>
+                <tr>
+          <td>reactive</td>
+          <td>52</td>
+          <td>0.115</td>
+          <td>1.596</td>
+          <td>35.0%</td>
+        </tr>
+              </table>
+
+      <h3>Role mix</h3>
+      <table>
+        <tr><th>Role</th><th>Count</th></tr>
+                <tr><td>disruptor</td><td>25</td></tr>
+                <tr><td>initiator</td><td>27</td></tr>
+                <tr><td>mediator</td><td>29</td></tr>
+                <tr><td>responder</td><td>37</td></tr>
+              </table>
+
+      <h3>Obligations (day totals)</h3>
+      <table>
+        <tr><th>Issued</th><th>Fulfilled</th><th>Denied</th><th>Expired</th><th>Repaired</th><th>Avg Strength</th></tr>
+        <tr>
+          <td>588</td>
+          <td>20</td>
+          <td>34</td>
+          <td>487</td>
+          <td>47</td>
+          <td>0.000</td>
+        </tr>
+      </table>
+      <table>
+        <tr><th>Completion</th><th>Denial</th><th>Expiry</th><th>Repair</th></tr>
+        <tr>
+          <td>3.4%</td>
+          <td>5.8%</td>
+          <td>82.8%</td>
+          <td>8.0%</td>
+        </tr>
+      </table>
+
+            <h3>Run parameters (merged)</h3>
+      <div class="grid">
+                  <div><strong>userID</strong><br>anon</div>
+                  <div><strong>timestamp</strong><br>2025-08-18T17:31:18.875Z</div>
+                  <div><strong>scenario</strong><br>pluralist</div>
+                  <div><strong>tags</strong><br>[obj]</div>
+                  <div><strong>config</strong><br>[obj]</div>
+                  <div><strong>metrics</strong><br>[obj]</div>
+                  <div><strong>summary</strong><br>
+      &lt;strong&gt;Summary — Final&lt;/strong&gt;&lt;br&gt;
+      Scenario: pluralist&lt;br&gt;
+      Norm Acknowledgment: legal: 70, apriori: 88, care: 72, epistemic: 77
+    </div>
+              </div>
+          </div>
+    
+<div class="card ai"><h2>AI Interpretation (SimEthica)</h2><div style="white-space:pre-wrap;">### Takeaways<br />
+- **Obligation Fulfillment**: The &quot;noApriori&quot; scenario shows the highest obligation fulfillment rate (46.1%) compared to &quot;asymmetryOnly&quot; (4.5%) and &quot;pluralist&quot; (3.4%).<br />
+- **Denial Rates**: &quot;noApriori&quot; has a significantly higher denial rate (53.4%) than &quot;asymmetryOnly&quot; (10.2%) and &quot;pluralist&quot; (5.8%), indicating more contentious interactions.<br />
+- **Success Rates**: The &quot;pluralist&quot; scenario has a success rate of 33.3%, outperforming the other scenarios, which recorded zero successes.<br />
+- **Average Trust**: &quot;noApriori&quot; has the highest average trust (2.71), while &quot;asymmetryOnly&quot; shows a notably lower average trust (0.98).<br />
+- **Norm Acknowledgment**: Legal norm acknowledgment is highest in &quot;noApriori&quot; (921) compared to &quot;asymmetryOnly&quot; (606) and &quot;pluralist&quot; (70).<br />
+<br />
+### Diagnosis of System Dynamics<br />
+The system dynamics reveal that the absence of apriori norms leads to higher obligation fulfillment but also increased contention and denial rates.<br />
+<br />
+### Implications for Obligation Recognition and Agent Success<br />
+1. Higher obligation fulfillment correlates with increased contention in the absence of apriori norms.<br />
+2. Success in agent interactions is more likely in pluralist scenarios, suggesting a balance of norms enhances outcomes.<br />
+3. Trust levels impact obligation recognition, with higher trust fostering better engagement and success rates.</div><small>Generated 2025-08-18 via OpenAI (gpt-4o-mini)</small></div>
+  </main>
+</body>
+</html>

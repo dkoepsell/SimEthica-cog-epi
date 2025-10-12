@@ -1,0 +1,47 @@
+nohup: ignoring input
+
+DevTools listening on ws://127.0.0.1:9333/devtools/browser/b55de668-5d2e-47f3-bb42-412462b547dd
+[430214:430214:1008/193446.786585:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.DBus.ListActivatableNames: object_path= /org/freedesktop/DBus: org.freedesktop.DBus.Error.AccessDenied: An AppArmor policy prevents this sender from sending this message to this recipient; type="method_call", sender=":1.96" (uid=1000 pid=430214 comm="/snap/chromium/3265/usr/lib/chromium-browser/chrom" label="snap.chromium.chromium (enforce)") interface="org.freedesktop.DBus" member="ListActivatableNames" error name="(unset)" requested_reply="0" destination="org.freedesktop.DBus" (bus)
+[430214:430214:1008/193446.787380:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.DBus.ListActivatableNames: object_path= /org/freedesktop/DBus: org.freedesktop.DBus.Error.AccessDenied: An AppArmor policy prevents this sender from sending this message to this recipient; type="method_call", sender=":1.96" (uid=1000 pid=430214 comm="/snap/chromium/3265/usr/lib/chromium-browser/chrom" label="snap.chromium.chromium (enforce)") interface="org.freedesktop.DBus" member="ListActivatableNames" error name="(unset)" requested_reply="0" destination="org.freedesktop.DBus" (bus)
+[430214:430214:1008/193446.787545:ERROR:dbus/object_proxy.cc:573] Failed to call method: org.freedesktop.DBus.ListActivatableNames: object_path= /org/freedesktop/DBus: org.freedesktop.DBus.Error.AccessDenied: An AppArmor policy prevents this sender from sending this message to this recipient; type="method_call", sender=":1.96" (uid=1000 pid=430214 comm="/snap/chromium/3265/usr/lib/chromium-browser/chrom" label="snap.chromium.chromium (enforce)") interface="org.freedesktop.DBus" member="ListActivatableNames" error name="(unset)" requested_reply="0" destination="org.freedesktop.DBus" (bus)
+[430214:430373:1008/193455.182439:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[430214:430373:1008/193520.697447:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: DEPRECATED_ENDPOINT
+[430214:430373:1008/193608.079665:ERROR:google_apis/gcm/engine/registration_request.cc:291] Registration response error message: QUOTA_EXCEEDED
+Warning: vkCreateInstance: Found no drivers!
+Warning: vkCreateInstance failed with VK_ERROR_INCOMPATIBLE_DRIVER
+    at CheckVkSuccessImpl (../../third_party/dawn/src/dawn/native/vulkan/VulkanError.cpp:106)
+
+[431232:431232:1008/193746.651824:ERROR:services/on_device_model/ml/gpu_blocklist.cc:120] Unable to get gpu adapter
+[430214:430214:1008/193746.651967:ERROR:services/on_device_model/public/cpp/service_client.cc:36] Unexpected on_device_model service disconnect: Error loading backend.
+[430214:430373:1008/215345.031953:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/045136.648080:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/052136.919991:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/055137.117057:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/062137.340875:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/073810.887890:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/084711.943930:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/091712.162072:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/094712.358194:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/103901.192232:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/110901.377855:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/124032.071968:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/152150.920002:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430373:1009/155753.607944:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430214:1009/162220.055059:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[430214:430214:1009/162220.055245:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[430214:430373:1009/162220.058746:ERROR:google_apis/gcm/engine/connection_factory_impl.cc:483] ConnectionHandler failed with net error: -2
+[430214:430214:1009/162220.061016:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[430214:430214:1009/162220.061116:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[430214:430214:1009/162220.069340:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote
+[430214:430214:1009/162220.070293:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.070639:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.070921:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.071228:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.071515:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.071793:ERROR:content/browser/gpu/gpu_process_host.cc:964] GPU process launch failed: error_code=1002
+[430214:430214:1009/162220.071801:FATAL:content/browser/gpu/gpu_data_manager_impl_private.cc:415] GPU process isn't usable. Goodbye.
+[1009/162220.073740:ERROR:third_party/crashpad/crashpad/util/linux/ptracer.cc:605] ptrace: Input/output error (5)
+[1009/162220.074624:ERROR:third_party/crashpad/crashpad/util/linux/ptracer.cc:605] ptrace: Input/output error (5)
+[1009/162220.074797:ERROR:third_party/crashpad/crashpad/util/linux/ptracer.cc:605] ptrace: Input/output error (5)
+[1009/162220.074871:ERROR:third_party/crashpad/crashpad/util/linux/ptracer.cc:605] ptrace: Input/output error (5)
+[1009/162220.100564:ERROR:third_party/crashpad/crashpad/snapshot/elf/elf_dynamic_array_reader.h:64] tag not found

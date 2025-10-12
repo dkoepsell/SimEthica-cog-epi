@@ -1,0 +1,179 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SimEthica Daily Report — 2025-09-13</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    :root{--ink:#222;--muted:#666;--line:#eee;--bg:#fafafa;--brand:#222;}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,'Helvetica Neue',Arial,sans-serif;margin:0;color:var(--ink);background:var(--bg)}
+    header{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--brand);color:#fff;position:sticky;top:0;z-index:10}
+    header .logo{font-weight:800;letter-spacing:.3px}
+    header .right{margin-left:auto;opacity:.85}
+    main{padding:24px}
+    h1{margin:0 0 4px} .sub{color:var(--muted);margin:0 0 16px}
+    .card{border:1px solid var(--line);border-radius:12px;padding:16px;margin:16px 0;box-shadow:0 1px 3px rgba(0,0,0,0.04);background:#fff}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+    table{border-collapse:collapse;width:100%;margin:8px 0} th,td{border-bottom:1px solid #f1f1f1;padding:8px;text-align:left}
+    th{background:#fbfbfb}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#f5f5f5;color:#333}
+    .mono{font-family:ui-monospace,Menlo,Consolas,monospace}
+    .ai{background:#fbfbfb;border:1px dashed #ddd}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="logo">SimEthica</div>
+    <div style="font-weight:600">Daily Reports</div>
+    <div class="right">© David Koepsell</div>
+  </header>
+
+  <main>
+    <h1>SimEthica Daily Report</h1>
+    <p class="sub">Date: <strong>2025-09-13</strong> <span class="pill">America/Chicago</span></p>
+
+    
+        <div class="card">
+      <h2>Scenario: pluralist</h2>
+
+      <div class="grid">
+        <div><strong>Runs</strong><br>1</div>
+        <div><strong>Agent snapshot rows</strong><br>117</div>
+        <div><strong>Obligation rows</strong><br>57,989</div>
+      </div>
+
+      <h3>Agent snapshot (last generation of each file)</h3>
+      <table>
+        <tr>
+          <th>Avg Conflict</th><th>Max Conflict</th>
+          <th>Avg Debt</th><th>Max Debt</th>
+          <th>Avg TrustCount</th><th>Avg TrustMax</th>
+          <th>Avg Momentum</th><th>Success Rate</th>
+        </tr>
+        <tr>
+          <td>1.487</td>
+          <td>6.000</td>
+          <td>1.487</td>
+          <td>6.000</td>
+          <td>2.50</td>
+          <td>15.63</td>
+          <td>0.655</td>
+          <td>35.9%</td>
+        </tr>
+      </table>
+
+      <h3>Breakdown by <code>normPref</code></h3>
+      <table>
+        <tr><th>normPref</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>apriori</td>
+          <td>27</td>
+          <td>1.481</td>
+          <td>1.481</td>
+          <td>37.4%</td>
+        </tr>
+                <tr>
+          <td>care</td>
+          <td>20</td>
+          <td>1.250</td>
+          <td>1.250</td>
+          <td>32.9%</td>
+        </tr>
+                <tr>
+          <td>epistemic</td>
+          <td>36</td>
+          <td>1.361</td>
+          <td>1.361</td>
+          <td>39.2%</td>
+        </tr>
+                <tr>
+          <td>legal</td>
+          <td>34</td>
+          <td>1.765</td>
+          <td>1.765</td>
+          <td>33.3%</td>
+        </tr>
+              </table>
+
+      <h3>Breakdown by <code>moralStance</code></h3>
+      <table>
+        <tr><th>moralStance</th><th>n</th><th>Avg Conflict</th><th>Avg Debt</th><th>Success Rate</th></tr>
+                <tr>
+          <td>proactive</td>
+          <td>54</td>
+          <td>1.481</td>
+          <td>1.481</td>
+          <td>36.2%</td>
+        </tr>
+                <tr>
+          <td>reactive</td>
+          <td>63</td>
+          <td>1.492</td>
+          <td>1.492</td>
+          <td>35.6%</td>
+        </tr>
+              </table>
+
+      <h3>Role mix</h3>
+      <table>
+        <tr><th>Role</th><th>Count</th></tr>
+                <tr><td>disruptor</td><td>23</td></tr>
+                <tr><td>initiator</td><td>33</td></tr>
+                <tr><td>mediator</td><td>34</td></tr>
+                <tr><td>responder</td><td>27</td></tr>
+              </table>
+
+      <h3>Obligations (day totals)</h3>
+      <table>
+        <tr><th>Issued</th><th>Fulfilled</th><th>Denied</th><th>Expired</th><th>Repaired</th><th>Avg Strength</th></tr>
+        <tr>
+          <td>57,989</td>
+          <td>20,900</td>
+          <td>37,044</td>
+          <td>0</td>
+          <td>45</td>
+          <td>0.000</td>
+        </tr>
+      </table>
+      <table>
+        <tr><th>Completion</th><th>Denial</th><th>Expiry</th><th>Repair</th></tr>
+        <tr>
+          <td>36.0%</td>
+          <td>63.9%</td>
+          <td>0.0%</td>
+          <td>0.1%</td>
+        </tr>
+      </table>
+
+            <h3>Run parameters (merged)</h3>
+      <div class="grid">
+                  <div><strong>userID</strong><br>anon</div>
+                  <div><strong>timestamp</strong><br>2025-09-13T22:43:35.904Z</div>
+                  <div><strong>scenario</strong><br>pluralist</div>
+                  <div><strong>tags</strong><br>[obj]</div>
+                  <div><strong>config</strong><br>[obj]</div>
+                  <div><strong>metrics</strong><br>[obj]</div>
+                  <div><strong>summary</strong><br>
+      &lt;strong&gt;Summary — Final&lt;/strong&gt;&lt;br&gt;
+      Scenario: pluralist&lt;br&gt;
+      Norm Acknowledgment: legal: 78, apriori: 66, care: 78, epistemic: 72
+    </div>
+              </div>
+          </div>
+    
+<div class="card ai"><h2>AI Interpretation (SimEthica)</h2><div style="white-space:pre-wrap;">1. **Takeaways:**<br />
+   - The pluralist scenario shows a success rate of 35.9%, with 15,601 successes out of 43,470 attempts, indicating moderate agent effectiveness.<br />
+   - Average conflict (1.49) and average debt (1.49) are consistent across moral stances, suggesting a stable conflict-debt relationship.<br />
+   - The denial rate for obligations is high at 63.9%, while the completion rate is only 36.0%, highlighting significant challenges in obligation fulfillment.<br />
+   - Legal norms have the highest acknowledgment (78), yet the success rate for legal obligations is the lowest (33.3%), indicating potential misalignment between recognition and effectiveness.<br />
+<br />
+2. **Diagnosis of System Dynamics:**<br />
+   - The system exhibits high conflict and debt levels, coupled with low obligation fulfillment, suggesting a struggle in balancing agent interactions and normative pressures.<br />
+<br />
+3. **Implications for Obligation Recognition and Agent Success:**<br />
+   - High denial rates indicate that agents may not recognize obligations as binding, undermining success.<br />
+   - Effective obligation recognition is crucial for improving success rates, particularly in legal contexts.<br />
+   - The disparity in norm acknowledgment versus success suggests a need for better alignment of agent motivations with normative frameworks.</div><small>Generated 2025-09-13 via OpenAI (gpt-4o-mini)</small></div>
+  </main>
+</body>
+</html>

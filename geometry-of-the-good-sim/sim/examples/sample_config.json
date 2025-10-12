@@ -1,0 +1,10 @@
+{
+  "numAgents": 50,
+  "generationInterval": 50,
+  "scenario": "utopian",
+  "toggles": {
+    "enableMoralRepair": true,
+    "enableDirectedEmergence": false,
+    "enableNonReciprocalTargeting": false
+  }
+}
