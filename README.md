@@ -86,7 +86,16 @@ Simulation data will be logged automatically to `/data` if configured.
 
 ### Option 2 — Node.js
 Run the headless simulation mode to log data only:
+## 🧪 Batch Mode
 
+SimEthica-cog-epi supports a **batch mode** for running multiple simulation configurations in sequence. This is ideal for benchmarking, comparative analysis, or exploring parameter spaces systematically.
+
+You can configure batch mode in two ways:
+
+1. **Via JSON file**: Create a JSON file containing an array of configuration objects. Each object should follow the standard simulation config schema. Then run:
+
+   ```bash
+   python run_batch.py path/to/batch_config.json
 ```bash
 node sketch.js --headless --output data/run1.csv
 ```
