@@ -79,8 +79,8 @@ You’ll see a field of agents moving and interacting in real time. Use the GUI 
 
 - **Obligation Strength**
 - **Moral Repair Rate**
-- **Cognitive Autonomy Weight**
-- **Epistemic Diversity**
+- **Cognitive Agency Weight**
+- **Epistemic Autonomy**
 
 Simulation data will be logged automatically to `/data` if configured.
 
@@ -196,7 +196,7 @@ See the [LICENSE](../LICENSE) file for details.
 
 ## 🧩 Acknowledgments
 
-Developed by **David Koepsell** with contributions from **Preston** and others in the *SimEthica* project.  
+Developed by **David Koepsell** with contributions from **Preston Justice** and others interacting with the *SimEthica* project.  
 The simulation is part of the larger research program on **The Architecture of Social Being**, integrating ontology, moral philosophy, and computational modeling.
 
 For documentation, related papers, and data visualizations, visit:  
