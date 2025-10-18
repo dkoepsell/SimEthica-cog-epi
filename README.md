@@ -90,7 +90,7 @@ Run the headless simulation mode to log data only:
 
 SimEthica-cog-epi supports a **batch mode** for running multiple simulation configurations in sequence. This is ideal for benchmarking, comparative analysis, or exploring parameter spaces systematically.
 
-You can configure batch mode in two ways:
+You can configure batch mode in two ways, the easiest is to adjust parameters and run batch mode, even with a deep time option, from the Advanced Settings tab in the GUI. You can also do so by configuring a JSON file as described:
 
 1. **Via JSON file**: Create a JSON file containing an array of configuration objects. Each object should follow the standard simulation config schema. Then run:
 
