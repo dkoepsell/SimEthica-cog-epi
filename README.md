@@ -12,8 +12,8 @@ It visualizes and measures emergent properties such as:
 - **Moral Energy** – cumulative measure of ethical coherence  
 - **Contradiction Debt** – accumulated unresolved obligations  
 - **Trust and Repair** – networked relational stability  
-- **Cognitive Autonomy** – freedom of belief updating  
-- **Epistemic Agency** – diversity of reasoning and belief systems  
+- **Cognitive Agency** –   diversity of reasoning and belief systems
+- **Epistemic Autonomy** – freedom of belief updating  
 
 Through these measures, the simulation demonstrates that **pluralism**—the coexistence of diverse cognitive and moral perspectives—is a structural condition for social stability.
 
