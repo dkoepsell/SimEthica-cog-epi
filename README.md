@@ -1,6 +1,6 @@
 # Geometry of the Good Simulation (SimEthica)
 
-The **Geometry of the Good Simulation** is part of the broader **SimEthica-Cog-Epi** project, which explores how ethical, cognitive, and epistemic properties emerge from agent interactions. This module focuses on modeling *the moral geometry of social being*—how relational obligations, trust, and contradiction debt evolve within pluralistic versus authoritarian conditions.
+The **Geometry of the Good Simulation** is part of the broader **SimEthica-Cog-Epi** project, which explores how ethical, cognitive, and epistemic properties emerge from agent interactions. This module focuses on modeling *the moral geometry of social being*—how relational obligations, trust, and contradiction debt evolve within pluralistic versus authoritarian conditions. This version runs on a public cerver at https://davidkoepsell.com/geometry-of-the-good-sim/index.html
 
 ---
 
