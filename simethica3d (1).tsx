@@ -1,0 +1,709 @@
+import * as THREE from "three";
+import { useState, useEffect, useRef, useCallback, createElement as h } from "react";
+
+const WORLD=160,MAX_LINES=400,MAX_AGENTS=2000,STEPS_PER_GEN=8;
+const REGIMES={
+  pluralist:    {label:"✦ Pluralist",    color:"#00cc66"},
+  authoritarian:{label:"⚡ Authoritarian",color:"#ff5500"},
+  contractarian:{label:"⇌ Contractarian",color:"#00aaff"},
+  communitarian:{label:"⬡ Communitarian",color:"#cc88ff"},
+  utilitarian:  {label:"∑ Utilitarian",  color:"#ffdd00"},
+  anarchist:    {label:"∅ Anarchist",    color:"#ff88aa"},
+  egalitarian:  {label:"⊜ Egalitarian",  color:"#44ffdd"},
+  hierarchical: {label:"△ Hierarchical", color:"#ff8833"},
+  reciprocal:   {label:"⟲ Reciprocal",   color:"#aaff99"},
+};
+const PARAM_SPACE={
+  trustDecay:         {label:"Trust Decay",       levels:[0.0005,0.002,0.010],fmt:v=>v.toFixed(4)},
+  moralRepairRate:    {label:"Moral Repair Rate",  levels:[0.02,0.05,0.12],   fmt:v=>v.toFixed(3)},
+  epistemicVariance:  {label:"Epistemic Variance", levels:[0.05,0.15,0.35],   fmt:v=>v.toFixed(2)},
+  obligationRadius:   {label:"Obligation Radius",  levels:[20,40,70],         fmt:v=>""+Math.round(v)},
+  beliefSimilarityReq:{label:"Belief Similarity",  levels:[-0.3,0.05,0.40],  fmt:v=>v.toFixed(2)},
+};
+const METRICS={energy:"Moral Energy",debt:"Contradiction Debt",trust:"Avg Trust",minEnergy:"Min Energy",ea:"Epistemic Agency",fulfillRate:"Fulfillment Rate"};
+const METRIC_DIR={energy:-1,debt:1,trust:-1,minEnergy:-1,ea:-1,fulfillRate:-1};
+const DEFAULT_CFG={
+  numAgents:60,obligationRadius:40,moralRepairRate:0.05,cognitiveWeight:0.20,
+  epistemicVariance:0.15,trustDecay:0.001,obligationLife:200,groupCount:4,
+  consentThreshold:0.45,utilBias:0.60,anarchyVoluntarism:0.40,
+  reproductionOn:true,reproEnergyThresh:0.35,reproTrustThresh:0.25,
+  beliefSimilarityReq:0.05,inheritanceStrength:0.75,maxPopulation:1000,deathThresh:0.05,
+  extPressure:0,pressureRamp:0,
+};
+const BUILTIN_HYPS=[
+  {id:"h1",label:"Pluralism reduces contradiction debt vs authoritarianism",cite:"Geometry of the Good §3",prediction:"Pluralist regime produces significantly lower avg contradiction debt (p<0.05)",condA:{regime:"pluralist",cfg:{},label:"Pluralist"},condB:{regime:"authoritarian",cfg:{},label:"Authoritarian"},metric:"debt",direction:-1},
+  {id:"h2",label:"Egalitarianism protects weakest agents vs utilitarianism",cite:"Architecture of Justice",prediction:"Egalitarian yields higher minimum moral energy (p<0.05)",condA:{regime:"egalitarian",cfg:{},label:"Egalitarian"},condB:{regime:"utilitarian",cfg:{},label:"Utilitarian"},metric:"minEnergy",direction:1},
+  {id:"h3",label:"Reciprocity outperforms anarchy on fulfillment rate",cite:"Geometry of the Good",prediction:"Reciprocal shows higher fulfillment rate than anarchist (p<0.05)",condA:{regime:"reciprocal",cfg:{},label:"Reciprocal"},condB:{regime:"anarchist",cfg:{},label:"Anarchist"},metric:"fulfillRate",direction:1},
+  {id:"h4",label:"Epistemic variance enables moral repair under pluralism",cite:"Architecture of Social Being",prediction:"High epistemic variance produces lower contradiction debt than low",condA:{regime:"pluralist",cfg:{epistemicVariance:0.35},label:"High Variance"},condB:{regime:"pluralist",cfg:{epistemicVariance:0.05},label:"Low Variance"},metric:"debt",direction:-1},
+  {id:"h5",label:"Moral repair rate dominates trust decay as stability predictor",cite:"Repair Capacity and Collapse (2025)",prediction:"Repair rate accounts for more variance in moral energy than trust decay",type:"sensitivity",params:["moralRepairRate","trustDecay"],metric:"energy"},
+  {id:"h6",label:"Contradiction debt is a leading indicator of moral energy decline",cite:"Contradiction Debt and Rupture",prediction:"Rising debt at t predicts energy decline at t+k (peak lag r>0.3)",type:"lag",regime:"pluralist"},
+];
+const BLANK_DRAFT={id:"",label:"",cite:"",prediction:"",condA:{regime:"pluralist",cfg:{},cfgKey:"",cfgVal:"",label:"Pluralist"},condB:{regime:"authoritarian",cfg:{},cfgKey:"",cfgVal:"",label:"Authoritarian"},metric:"energy",direction:-1};
+const T={primary:"#e8f0fe",muted:"#8faac8",dim:"#4a6080",label:"#b0c8e8",cyan:"#00e5ff",green:"#44ff88",orange:"#ffaa44",red:"#ff5555",purple:"#bb99ff"};
+const pnl={background:"rgba(3,6,18,0.95)",border:"1px solid #1e3050",borderRadius:8,padding:"12px 14px",color:T.primary};
+const Cv={healthy:new THREE.Color(0x00e5ff),stressed:new THREE.Color(0xff9900),collapsed:new THREE.Color(0xff1122),active:new THREE.Color(0x6677ff),fulfilled:new THREE.Color(0x44ff88),denied:new THREE.Color(0xff3333),expired:new THREE.Color(0x667788),newborn:new THREE.Color(0xffffff)};
+
+// ── Pill button selector — NO dropdowns anywhere ──────────────────────────
+function Pills({options,val,onChange}){
+  return h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}},
+    options.map(o=>h("button",{key:o.value,onClick:()=>onChange(o.value),
+      style:{padding:"3px 9px",borderRadius:10,fontSize:9,fontFamily:"monospace",cursor:"pointer",
+        border:`1px solid ${val===o.value?(o.color||T.cyan):"#2a3a50"}`,
+        background:val===o.value?`${o.color||T.cyan}22`:"transparent",
+        color:val===o.value?(o.color||T.cyan):T.dim}},o.label))
+  );
+}
+function Cycler({val,onChange,options}){
+  const idx=Math.max(0,options.findIndex(o=>o.value===val));
+  const cur=options[idx];
+  return h("div",{style:{display:"flex",alignItems:"center",gap:4,width:"100%"}},
+    h("button",{onClick:()=>onChange(options[(idx-1+options.length)%options.length].value),style:{background:"#1a2a40",border:"1px solid #2a3a50",color:T.muted,borderRadius:4,padding:"3px 9px",cursor:"pointer",fontSize:12}},"‹"),
+    h("div",{style:{flex:1,background:"#0a1428",border:"1px solid #1e3050",borderRadius:4,padding:"5px 8px",fontSize:10,color:cur?.color||T.primary,textAlign:"center"}},cur?.label||"—"),
+    h("button",{onClick:()=>onChange(options[(idx+1)%options.length].value),style:{background:"#1a2a40",border:"1px solid #2a3a50",color:T.muted,borderRadius:4,padding:"3px 9px",cursor:"pointer",fontSize:12}},"›")
+  );
+}
+const Label=({children})=>h("div",{style:{fontSize:10,color:T.label,marginBottom:4}},children);
+
+// ── SVG charts ────────────────────────────────────────────────────────────
+function MiniLine({data,keys,colors,ht=50}){
+  if(!data||data.length<2)return null;
+  const W=220,H=ht,pad=4,all=keys.flatMap(k=>data.map(d=>d[k]||0));
+  const mn=Math.min(...all),mx=Math.max(...all)||1;
+  const sx=i=>pad+(i/(data.length-1))*(W-pad*2),sy=v=>H-pad-((v-mn)/(mx-mn||1))*(H-pad*2);
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    keys.map((k,ki)=>h("polyline",{key:k,points:data.map((d,i)=>`${sx(i).toFixed(1)},${sy(d[k]||0).toFixed(1)}`).join(" "),fill:"none",stroke:colors[ki],strokeWidth:"1.5",strokeLinejoin:"round"}))
+  );
+}
+function HBar({data,valueKey,labelKey,colorKey,staticColor,ht=180}){
+  if(!data||!data.length)return null;
+  const W=320,rowH=Math.min(28,Math.floor((ht-10)/data.length)),maxV=Math.max(...data.map(d=>Math.abs(d[valueKey]||0)))||1;
+  return h("svg",{viewBox:`0 0 ${W} ${data.length*rowH+10}`,style:{width:"100%",height:ht,display:"block"}},
+    data.map((d,i)=>{const v=d[valueKey]||0,bw=Math.max(2,(Math.abs(v)/maxV)*(W-120)),y=i*rowH+2,col=colorKey?d[colorKey]:(staticColor||T.cyan);
+      return h("g",{key:i},h("text",{x:0,y:y+rowH*0.72,fontSize:rowH*0.44,fill:T.primary},(d[labelKey]||"").slice(0,18)),h("rect",{x:100,y:y+2,width:bw,height:rowH-4,fill:col,rx:2}),h("text",{x:104+bw,y:y+rowH*0.72,fontSize:rowH*0.42,fill:T.muted},typeof v==="number"?v.toFixed(3):""));
+    })
+  );
+}
+function MiniBar({data,valueKey,labelKey,color}){
+  if(!data||!data.length)return null;
+  const W=220,H=70,pad=6,bw=Math.max(4,(W-pad*2)/data.length-2),maxV=Math.max(...data.map(d=>d[valueKey]||0))||1;
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    data.map((d,i)=>{const bh=((d[valueKey]||0)/maxV)*(H-20),x=pad+i*(bw+2);return h("g",{key:i},h("rect",{x,y:H-14-bh,width:bw,height:bh,fill:color||T.cyan,rx:2}),h("text",{x:x+bw/2,y:H-2,fontSize:7,fill:T.dim,textAnchor:"middle"},d[labelKey]||""));})
+  );
+}
+function LagChart({lagCorr,peak}){
+  if(!lagCorr||lagCorr.length<2)return null;
+  const W=380,H=130,pL=36,pB=20,pT=8,pR=10,iW=W-pL-pR,iH=H-pB-pT;
+  const mn=Math.min(-0.05,...lagCorr.map(d=>d.r)),mx=Math.max(0.35,...lagCorr.map(d=>d.r)),rng=mx-mn||1;
+  const sx=i=>pL+i/(lagCorr.length-1)*iW,sy=v=>pT+iH-((v-mn)/rng)*iH;
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    h("line",{x1:pL,y1:pT,x2:pL,y2:pT+iH,stroke:T.dim,strokeWidth:0.5}),
+    h("line",{x1:pL,y1:pT+iH,x2:pL+iW,y2:pT+iH,stroke:T.dim,strokeWidth:0.5}),
+    [mn,0,mx].map((v,i)=>h("text",{key:i,x:pL-3,y:sy(v)+3,fontSize:7,fill:T.dim,textAnchor:"end"},v.toFixed(2))),
+    h("line",{x1:pL,y1:sy(0),x2:pL+iW,y2:sy(0),stroke:T.dim,strokeDasharray:"3 2",strokeWidth:0.8}),
+    mx>=0.3&&h("line",{x1:pL,y1:sy(0.3),x2:pL+iW,y2:sy(0.3),stroke:T.green,strokeDasharray:"3 2",strokeWidth:0.8}),
+    h("polyline",{points:lagCorr.map((d,i)=>`${sx(i).toFixed(1)},${sy(d.r).toFixed(1)}`).join(" "),fill:"none",stroke:T.cyan,strokeWidth:2,strokeLinejoin:"round"}),
+    peak&&h("circle",{cx:sx(peak.lag),cy:sy(peak.r),r:4,fill:T.orange,opacity:0.9}),
+    peak&&h("text",{x:sx(peak.lag)+6,y:sy(peak.r)-3,fontSize:8,fill:T.orange},`k=${peak.lag}`),
+    h("text",{x:pL+iW/2,y:H-2,fontSize:7,fill:T.dim,textAnchor:"middle"},"lag (generations)")
+  );
+}
+function SweepChart({chartData,regimes}){
+  if(!chartData||chartData.length<2)return null;
+  const W=380,H=150,pL=34,pB=20,pT=8,pR=80,iW=W-pL-pR,iH=H-pB-pT;
+  const sx=i=>pL+i/(chartData.length-1)*iW,sy=v=>pT+iH-(Math.min(1,Math.max(0,v)))*iH;
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    h("line",{x1:pL,y1:pT,x2:pL,y2:pT+iH,stroke:T.dim,strokeWidth:0.5}),
+    h("line",{x1:pL,y1:pT+iH,x2:pL+iW,y2:pT+iH,stroke:T.dim,strokeWidth:0.5}),
+    [0,0.5,1].map(v=>h("text",{key:v,x:pL-3,y:sy(v)+3,fontSize:7,fill:T.dim,textAnchor:"end"},v.toFixed(1))),
+    chartData.map((d,i)=>h("text",{key:i,x:sx(i),y:pT+iH+12,fontSize:7,fill:T.dim,textAnchor:"middle"},Number(d.rate).toFixed(2))),
+    regimes.map(reg=>{const col=REGIMES[reg]?.color||"#888",pts=chartData.map((d,i)=>`${sx(i).toFixed(1)},${sy(d[reg]||0).toFixed(1)}`).join(" "),last=chartData[chartData.length-1];return h("g",{key:reg},h("polyline",{points:pts,fill:"none",stroke:col,strokeWidth:1.8,strokeLinejoin:"round"}),h("text",{x:pL+iW+4,y:sy(last[reg]||0)+3,fontSize:7,fill:col},(REGIMES[reg]?.label||reg).slice(2,10)));})
+  );
+}
+function SeriesCompare({seriesA,seriesB,metric,colorA,colorB,labelA,labelB,ht=90}){
+  if(!seriesA?.length||!seriesB?.length)return null;
+  const W=380,H=ht,pad=4,all=[...seriesA.map(d=>d[metric]||0),...seriesB.map(d=>d[metric]||0)];
+  const mn=Math.min(...all),mx=Math.max(...all)||1;
+  const sx=(i,n)=>pad+(i/(n-1||1))*(W-pad*2),sy=v=>H-12-((v-mn)/(mx-mn||1))*(H-20);
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    h("polyline",{points:seriesA.map((d,i)=>`${sx(i,seriesA.length).toFixed(1)},${sy(d[metric]||0).toFixed(1)}`).join(" "),fill:"none",stroke:colorA||T.cyan,strokeWidth:1.8,strokeLinejoin:"round"}),
+    h("polyline",{points:seriesB.map((d,i)=>`${sx(i,seriesB.length).toFixed(1)},${sy(d[metric]||0).toFixed(1)}`).join(" "),fill:"none",stroke:colorB||T.red,strokeWidth:1.8,strokeLinejoin:"round"}),
+    h("rect",{x:6,y:4,width:8,height:4,fill:colorA||T.cyan,rx:1}),h("text",{x:17,y:10,fontSize:8,fill:colorA||T.cyan},labelA),
+    h("rect",{x:6,y:14,width:8,height:4,fill:colorB||T.red,rx:1}),h("text",{x:17,y:20,fontSize:8,fill:colorB||T.red},labelB)
+  );
+}
+function FactorialGrid({means,sds,labelA1,labelA2,labelB1,labelB2}){
+  if(!means||means.length<4)return null;
+  const W=320,H=110,cw=100,rh=40,ox=80,oy=30;
+  const all=means.filter(Boolean),mn=Math.min(...all)*0.95,mx=Math.max(...all)*1.02;
+  const shade=v=>{const t=(v-mn)/(mx-mn||1);return `rgb(${Math.round(t*0)},${Math.round(100+t*155)},${Math.round(60+t*100)})`;};
+  return h("svg",{viewBox:`0 0 ${W} ${H}`,style:{width:"100%",height:H,display:"block"}},
+    h("text",{x:ox+cw/2,y:18,fontSize:9,fill:T.muted,textAnchor:"middle"},labelB1),
+    h("text",{x:ox+cw+cw/2,y:18,fontSize:9,fill:T.muted,textAnchor:"middle"},labelB2),
+    h("text",{x:ox-4,y:oy+rh/2+4,fontSize:9,fill:T.muted,textAnchor:"end"},(labelA1||"").slice(2,10)),
+    h("text",{x:ox-4,y:oy+rh+rh/2+4,fontSize:9,fill:T.muted,textAnchor:"end"},(labelA2||"").slice(2,10)),
+    [0,1,2,3].map(ci=>{const row=Math.floor(ci/2),col=ci%2,x=ox+col*cw,y=oy+row*rh;return h("g",{key:ci},h("rect",{x,y,width:cw-2,height:rh-2,fill:shade(means[ci]||0),rx:3,opacity:0.85}),h("text",{x:x+cw/2,y:y+rh/2-4,fontSize:11,fill:"white",textAnchor:"middle",fontWeight:"bold"},(means[ci]||0).toFixed(3)),h("text",{x:x+cw/2,y:y+rh/2+9,fontSize:8,fill:"rgba(255,255,255,0.7)",textAnchor:"middle"},`±${(sds[ci]||0).toFixed(3)}`));})
+  );
+}
+
+// ── Stats ─────────────────────────────────────────────────────────────────
+const sMean=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+const sVar=a=>{if(a.length<2)return 0;const m=sMean(a);return a.reduce((s,x)=>s+(x-m)**2,0)/(a.length-1);};
+const sStd=a=>Math.sqrt(sVar(a));
+const normalCDF=z=>{const t=1/(1+0.2316419*Math.abs(z)),d=0.3989423*Math.exp(-z*z/2);const p=d*t*(0.3193815+t*(-0.3565638+t*(1.7814779+t*(-1.8212560+t*1.3302744))));return z>0?1-p:p;};
+const welchTest=(a,b)=>{
+  if(!a.length||!b.length||a.length<2||b.length<2)return{t:0,p:1,d:0,meanA:sMean(a),meanB:sMean(b),ci:[-1,1],valid:false,sdA:sStd(a),sdB:sStd(b)};
+  const na=a.length,nb=b.length,ma=sMean(a),mb=sMean(b),va=sVar(a),vb=sVar(b);
+  const se=Math.sqrt(va/na+vb/nb);if(se<1e-10)return{t:0,p:1,d:0,meanA:ma,meanB:mb,ci:[0,0],valid:true,sdA:sStd(a),sdB:sStd(b)};
+  const t=(ma-mb)/se,p=Math.min(1,2*(1-normalCDF(Math.abs(t)))),d=(ma-mb)/(Math.sqrt((va+vb)/2)||1e-10);
+  return{t,p,d,meanA:ma,meanB:mb,ci:[ma-mb-1.96*se,ma-mb+1.96*se],valid:true,sdA:sStd(a),sdB:sStd(b)};
+};
+const pearsonR=(x,y)=>{const n=x.length;if(n<3)return 0;const mx=sMean(x),my=sMean(y);let num=0,dx2=0,dy2=0;for(let i=0;i<n;i++){const xi=x[i]-mx,yi=y[i]-my;num+=xi*yi;dx2+=xi**2;dy2+=yi**2;}return num/Math.sqrt(dx2*dy2+1e-10);};
+const lagCorrelation=(s1,s2,maxLag)=>Array.from({length:maxLag+1},(_,lag)=>{const n=Math.min(s1.length,s2.length-lag);if(n<5)return{lag,r:0};return{lag,r:parseFloat(pearsonR(s1.slice(0,n),s2.slice(lag,lag+n)).toFixed(4))};});
+const mkRng=seed=>{let s=seed>>>0;return()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};};
+const linSlope=(series,metric)=>{const n=series.length;if(n<2)return 0;const xs=series.map((_,i)=>i),ys=series.map(d=>d[metric]||0),mx=sMean(xs),my=sMean(ys);const num=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0),den=xs.reduce((s,x)=>s+(x-mx)**2,0);return den>0?num/den:0;};
+const auc=(series,metric)=>{if(series.length<2)return 0;let s=0;for(let i=1;i<series.length;i++)s+=(series[i-1][metric]+series[i][metric])/2;return s/(series.length-1);};
+const timeToThreshold=(series,metric,threshold,crossDir)=>{for(let i=0;i<series.length;i++){const v=series[i][metric]||0;if(crossDir<0&&v<threshold)return i;if(crossDir>0&&v>threshold)return i;}return series.length;};
+
+// ── Agent ─────────────────────────────────────────────────────────────────
+let _aid=0;
+class Agent{
+  constructor(cfg,pA,pB){
+    this.id=_aid++;this.age=0;this.isNewborn=true;this.newbornFlash=0;this.reprocooldown=0;
+    this.issued=0;this.fulfilled=0;this.denied=0;this.expired=0;
+    if(pA&&pB){
+      const s=cfg.inheritanceStrength,r=1-s;
+      const bl=(a,b)=>a*s*(0.5+Math.random()*0.5)+b*s*(0.5+Math.random()*0.5)+(Math.random()-0.5)*r;
+      this.moralEnergy=Math.min(1,Math.max(0,bl(pA.moralEnergy,pB.moralEnergy)*0.7));
+      this.contradictionDebt=(pA.contradictionDebt+pB.contradictionDebt)*0.3+Math.random()*0.1;
+      this.trust=Math.min(1,Math.max(0,bl(pA.trust,pB.trust)*0.8));
+      this.cognitiveAgency=Math.min(1,Math.max(0.05,bl(pA.cognitiveAgency,pB.cognitiveAgency)));
+      this.epistemicAutonomy=Math.min(1,Math.max(0.05,bl(pA.epistemicAutonomy,pB.epistemicAutonomy)));
+      this.rank=Math.min(1,Math.max(0,(pA.rank+pB.rank)/2+(Math.random()-0.5)*0.2));
+      this.beliefVec=pA.beliefVec.clone().lerp(pB.beliefVec,0.5).add(new THREE.Vector3((Math.random()-0.5)*r*0.5,(Math.random()-0.5)*r*0.5,(Math.random()-0.5)*r*0.5)).normalize();
+      this.group=Math.random()<0.85?pA.group:Math.floor(Math.random()*Math.max(1,cfg.groupCount));
+      this.pos=pA.pos.clone().add(new THREE.Vector3((Math.random()-0.5)*20,(Math.random()-0.5)*20,(Math.random()-0.5)*20));
+    }else{
+      this.moralEnergy=0.4+Math.random()*0.4;this.contradictionDebt=Math.random()*0.25;
+      this.trust=0.3+Math.random()*0.4;this.cognitiveAgency=0.2+Math.random()*0.6;
+      this.epistemicAutonomy=0.2+Math.random()*0.6;this.rank=Math.random();
+      this.beliefVec=new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
+      this.group=Math.floor(Math.random()*Math.max(1,cfg.groupCount));
+      this.pos=new THREE.Vector3((Math.random()-0.5)*WORLD*2,(Math.random()-0.5)*WORLD*2,(Math.random()-0.5)*WORLD*2);
+    }
+    this.vel=new THREE.Vector3(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize().multiplyScalar(0.55);
+  }
+  getColor(regime){
+    if(this.isNewborn&&this.newbornFlash<30)return new THREE.Color().lerpColors(Cv.newborn,Cv.healthy,this.newbornFlash/30);
+    const score=this.moralEnergy-this.contradictionDebt*0.6,col=new THREE.Color();
+    if(score>0.25)col.lerpColors(Cv.stressed,Cv.healthy,Math.min(1,(score-0.25)/0.55));
+    else col.lerpColors(Cv.collapsed,Cv.stressed,Math.max(0,(score+0.4)/0.65));
+    const tm={authoritarian:[0xffcc00,(1-this.epistemicAutonomy)*0.45],contractarian:[0x00aaff,this.trust*0.3],communitarian:[0xcc88ff,0.25],utilitarian:[0xffdd00,this.moralEnergy*0.3],anarchist:[0xff88aa,this.epistemicAutonomy*0.3],egalitarian:[0x44ffdd,(1-Math.abs(this.moralEnergy-0.5)*2)*0.4],hierarchical:[0xff8833,this.rank*0.4],reciprocal:[0xaaff99,this.trust*0.35]};
+    const t=tm[regime];if(t)col.lerp(new THREE.Color(t[0]),t[1]);
+    return col;
+  }
+}
+class Obligation{constructor(issuer,target){this.issuer=issuer;this.target=target;this.age=0;this.state="active";this.flashAge=0;issuer.issued++;}}
+
+// ── Simulation ────────────────────────────────────────────────────────────
+class Simulation{
+  constructor(){this.cfg={...DEFAULT_CFG};this.regime="pluralist";this.iHist=new Map();this._init();}
+  _init(){_aid=0;this.agents=Array.from({length:this.cfg.numAgents},()=>new Agent(this.cfg));this.obligations=[];this.step_count=0;this.generation=0;this.totalBirths=0;this.totalDeaths=0;this.iHist=new Map();this._extP=this.cfg.extPressure||0;this.stats={issued:0,fulfilled:0,denied:0,expired:0,avgTrust:0.45,avgDebt:0.12,avgMoralEnergy:0.55,cognitiveAutonomy:0.5,epistemicAgency:0.5,minMoralEnergy:0,population:this.cfg.numAgents,births:0,deaths:0,extPressure:0};this.history=[];this.fullHistory=[];}
+  reseed(){this._init();}
+  applyCfg(inc){this.cfg={...this.cfg,...inc};while(this.agents.length<this.cfg.numAgents)this.agents.push(new Agent(this.cfg));}
+  step(){
+    this.step_count++;const cfg=this.cfg,{regime}=this;
+    const auth=regime==="authoritarian",contr=regime==="contractarian",comm=regime==="communitarian",util=regime==="utilitarian",anarch=regime==="anarchist",egal=regime==="egalitarian",hier=regime==="hierarchical",recip=regime==="reciprocal";
+    const official=new THREE.Vector3(1,0,0);let births=0,deaths=0;
+    if(this.step_count%STEPS_PER_GEN===0)this._extP=Math.min(1,(this._extP||0)+(cfg.pressureRamp||0));
+    if(this.agents.length>10){const dying=this.agents.filter(a=>a.age>60&&((a.moralEnergy<cfg.deathThresh&&a.contradictionDebt>0.5)||a.contradictionDebt>1.2));dying.forEach(d=>{this.agents=this.agents.filter(a=>a!==d);this.obligations=this.obligations.filter(o=>o.issuer!==d&&o.target!==d);deaths++;});}
+    const avgE=egal?this.agents.reduce((s,a)=>s+a.moralEnergy,0)/Math.max(1,this.agents.length):0;
+    for(const a of this.agents){
+      a.age++;if(a.isNewborn){a.newbornFlash++;if(a.newbornFlash>=30)a.isNewborn=false;}if(a.reprocooldown>0)a.reprocooldown--;
+      a.pos.addScaledVector(a.vel,1);
+      for(const ax of["x","y","z"]){if(a.pos[ax]>WORLD){a.vel[ax]=-Math.abs(a.vel[ax]);a.pos[ax]=WORLD;}if(a.pos[ax]<-WORLD){a.vel[ax]=Math.abs(a.vel[ax]);a.pos[ax]=-WORLD;}}
+      a.vel.x+=(Math.random()-0.5)*0.06;a.vel.y+=(Math.random()-0.5)*0.06;a.vel.z+=(Math.random()-0.5)*0.06;a.vel.clampLength(0.25,1.1);
+      if(comm){const gm=this.agents.filter(b=>b!==a&&b.group===a.group);if(gm.length){a.vel.x+=(gm.reduce((s,b)=>s+b.pos.x,0)/gm.length-a.pos.x)*0.0005;a.vel.y+=(gm.reduce((s,b)=>s+b.pos.y,0)/gm.length-a.pos.y)*0.0005;a.vel.z+=(gm.reduce((s,b)=>s+b.pos.z,0)/gm.length-a.pos.z)*0.0005;}}
+      a.trust=Math.max(0,a.trust-cfg.trustDecay);a.moralEnergy=Math.min(1,a.moralEnergy+0.003*(a.trust+0.2));
+      if(this._extP>0){a.beliefVec.lerp(official,this._extP*0.004).normalize();a.epistemicAutonomy=Math.max(0,a.epistemicAutonomy-this._extP*0.002);}
+      if(auth){a.beliefVec.lerp(official,0.008).normalize();a.epistemicAutonomy=Math.max(0,a.epistemicAutonomy-0.003);a.cognitiveAgency=Math.max(0.05,a.cognitiveAgency-0.001);}
+      else if(contr){a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.001);if(a.trust>cfg.consentThreshold)a.moralEnergy=Math.min(1,a.moralEnergy+0.001);}
+      else if(comm){const m=this.agents.find(b=>b!==a&&b.group===a.group);if(m)a.beliefVec.lerp(m.beliefVec,0.006).normalize();a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.0005);}
+      else if(util){a.moralEnergy=Math.min(1,Math.max(0,a.moralEnergy+(a.moralEnergy-0.5)*0.003*cfg.utilBias));a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.0008);}
+      else if(anarch){a.beliefVec.x+=(Math.random()-0.5)*0.12;a.beliefVec.y+=(Math.random()-0.5)*0.12;a.beliefVec.z+=(Math.random()-0.5)*0.12;a.beliefVec.normalize();a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.003);a.cognitiveAgency=Math.min(1,a.cognitiveAgency+0.001);}
+      else if(egal){if(a.moralEnergy<0.3)a.moralEnergy=Math.min(1,a.moralEnergy+0.003);a.beliefVec.x+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.y+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.z+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.normalize();a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.001);}
+      else if(hier){a.moralEnergy=Math.min(1,Math.max(0,a.moralEnergy+(a.rank-0.5)*0.003));a.beliefVec.x+=(Math.random()-0.5)*cfg.epistemicVariance*0.05;a.beliefVec.y+=(Math.random()-0.5)*cfg.epistemicVariance*0.05;a.beliefVec.z+=(Math.random()-0.5)*cfg.epistemicVariance*0.05;a.beliefVec.normalize();a.epistemicAutonomy=Math.min(1,Math.max(0,a.epistemicAutonomy+(a.rank-0.5)*0.002));}
+      else if(recip){a.beliefVec.x+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.y+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.z+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.normalize();a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.0008);}
+      else{a.beliefVec.x+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.y+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.z+=(Math.random()-0.5)*cfg.epistemicVariance*0.07;a.beliefVec.normalize();a.epistemicAutonomy=Math.min(1,a.epistemicAutonomy+0.001);a.cognitiveAgency=Math.min(1,a.cognitiveAgency+0.0005);}
+    }
+    if(cfg.reproductionOn&&this.agents.length<cfg.maxPopulation){
+      const elig=this.agents.filter(a=>a.moralEnergy>cfg.reproEnergyThresh&&a.trust>cfg.reproTrustThresh&&a.reprocooldown===0&&a.age>15);
+      for(let i=elig.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[elig[i],elig[j]]=[elig[j],elig[i]];}
+      const paired=new Set();
+      for(const a of elig){if(this.agents.length>=cfg.maxPopulation)break;if(paired.has(a))continue;let best=null,bs=-Infinity;for(const b of elig){if(b===a||paired.has(b))continue;const dot=a.beliefVec.dot(b.beliefVec);if(dot>cfg.beliefSimilarityReq){const sc=dot+b.trust;if(sc>bs){bs=sc;best=b;}}}if(!best)continue;this.agents.push(new Agent(cfg,a,best));paired.add(a);paired.add(best);a.reprocooldown=60;best.reprocooldown=60;a.moralEnergy-=0.06;best.moralEnergy-=0.04;births++;}
+    }
+    this.totalBirths+=births;this.totalDeaths+=deaths;
+    const ac=this.obligations.filter(o=>o.state==="active").length;
+    if(ac<200){for(let i=0;i<this.agents.length;i++)for(let j=i+1;j<this.agents.length;j++){const a=this.agents[i],b=this.agents[j],dist=a.pos.distanceTo(b.pos);let thr=cfg.obligationRadius;if(comm)thr=a.group===b.group?cfg.obligationRadius*1.5:cfg.obligationRadius*0.35;if(contr&&(a.trust<cfg.consentThreshold||b.trust<cfg.consentThreshold))continue;if(hier&&Math.random()>a.rank*0.7+0.15)continue;if(dist<thr&&Math.random()<(anarch?0.002:0.004)){const dup=this.obligations.some(o=>o.state==="active"&&((o.issuer===a&&o.target===b)||(o.issuer===b&&o.target===a)));if(!dup){this.obligations.push(new Obligation(a,b));this.stats.issued++;}}}}
+    for(const ob of this.obligations){
+      if(ob.state!=="active"){ob.flashAge++;continue;}ob.age++;const{issuer:is,target:tg}=ob;
+      let rP=cfg.moralRepairRate*(1+is.cognitiveAgency*cfg.cognitiveWeight)*(1-this._extP*0.5),dP=(1-tg.trust)*0.018*(1+this._extP);
+      if(auth){rP*=0.3;dP*=2.5;}if(contr){rP*=(is.trust>cfg.consentThreshold&&tg.trust>cfg.consentThreshold)?2:0.5;dP*=0.6;}if(comm){rP*=is.group===tg.group?1.8:0.4;dP*=is.group===tg.group?0.5:1.6;}if(util){rP*=(0.5+is.moralEnergy*cfg.utilBias);dP*=(1-is.moralEnergy*0.4);}if(anarch){rP=cfg.anarchyVoluntarism*is.epistemicAutonomy;dP*=1.2;}if(egal){rP*=(0.5+avgE);if(is.moralEnergy<0.3)rP*=1.4;dP*=0.65;}if(hier){rP*=(0.3+is.rank*1.4);dP*=(1.2-tg.rank*0.8);}
+      if(recip){const k=`${Math.min(is.id,tg.id)}-${Math.max(is.id,tg.id)}`,last=this.iHist.get(k);if(last==="fulfilled")rP*=1.6;else if(last==="denied"){rP*=0.5;dP*=1.8;}}
+      const r=Math.random();let outcome=null;
+      if(r<rP){ob.state="fulfilled";is.fulfilled++;is.trust=Math.min(1,is.trust+0.05);tg.trust=Math.min(1,tg.trust+0.03);is.moralEnergy=Math.min(1,is.moralEnergy+0.04);is.contradictionDebt=Math.max(0,is.contradictionDebt-0.03);this.stats.fulfilled++;outcome="fulfilled";}
+      else if(r<rP+dP){ob.state="denied";is.denied++;is.contradictionDebt+=0.1;is.trust=Math.max(0,is.trust-0.05);is.moralEnergy=Math.max(0,is.moralEnergy-0.07);this.stats.denied++;outcome="denied";}
+      else if(ob.age>cfg.obligationLife){ob.state="expired";is.expired++;is.contradictionDebt+=0.04;this.stats.expired++;}
+      if(recip&&outcome){const k=`${Math.min(is.id,tg.id)}-${Math.max(is.id,tg.id)}`;this.iHist.set(k,outcome);}
+    }
+    this.obligations=this.obligations.filter(o=>!(o.state!=="active"&&o.flashAge>28));
+    let sT=0,sD=0,sM=0,sC=0,sE=0,minM=1;for(const a of this.agents){sT+=a.trust;sD+=a.contradictionDebt;sM+=a.moralEnergy;sC+=a.cognitiveAgency;sE+=a.epistemicAutonomy;if(a.moralEnergy<minM)minM=a.moralEnergy;}
+    const n=Math.max(1,this.agents.length);
+    Object.assign(this.stats,{avgTrust:sT/n,avgDebt:sD/n,avgMoralEnergy:sM/n,cognitiveAutonomy:sC/n,epistemicAgency:sE/n,minMoralEnergy:minM,population:this.agents.length,births,deaths,extPressure:this._extP});
+    if(this.step_count%STEPS_PER_GEN===0){this.generation++;if(this.generation%5===0){const row={g:this.generation,trust:+(sT/n).toFixed(4),debt:+(sD/n).toFixed(4),energy:+(sM/n).toFixed(4),minEnergy:+minM.toFixed(4),ea:+(sE/n).toFixed(4),ca:+(sC/n).toFixed(4),pop:this.agents.length,births:this.totalBirths,deaths:this.totalDeaths,extPressure:+this._extP.toFixed(4),regime:this.regime,issued:this.stats.issued,fulfilled:this.stats.fulfilled,denied:this.stats.denied};this.history.push(row);this.fullHistory.push(row);if(this.history.length>80)this.history.shift();}}
+  }
+}
+
+// ── Science runners ───────────────────────────────────────────────────────
+const runOneSim=(cfg,regime,depth,seed)=>{const orig=Math.random;Math.random=mkRng(seed);try{const sim=new Simulation();sim.applyCfg({...cfg,numAgents:40,reproductionOn:false});sim.regime=regime;for(let i=0;i<depth*STEPS_PER_GEN;i++)sim.step();const s=sim.stats;return{moralEnergy:+s.avgMoralEnergy.toFixed(4),trust:+s.avgTrust.toFixed(4),debt:+s.avgDebt.toFixed(4),minEnergy:+s.minMoralEnergy.toFixed(4),ea:+s.epistemicAgency.toFixed(4),fulfillRate:s.issued>0?+(s.fulfilled/s.issued).toFixed(4):0,pop:sim.agents.length};}finally{Math.random=orig;}};
+const runOneSimSeries=(cfg,regime,depth,seed)=>{const orig=Math.random;Math.random=mkRng(seed);try{const sim=new Simulation();sim.applyCfg({...cfg,numAgents:40,reproductionOn:false});sim.regime=regime;const series=[];for(let i=0;i<depth*STEPS_PER_GEN;i++){sim.step();if(i%STEPS_PER_GEN===0){const s=sim.stats;series.push({g:sim.generation,energy:s.avgMoralEnergy,debt:s.avgDebt,trust:s.avgTrust,minEnergy:s.minMoralEnergy,ea:s.epistemicAgency,fulfillRate:s.issued>0?s.fulfilled/s.issued:0});}}return{series,...sim.stats};}finally{Math.random=orig;}};
+const runHypTest=async(hyp,nReps,depth,seed,onProg)=>{
+  if(hyp.type==="lag"){const orig=Math.random;Math.random=mkRng(seed);try{const sim=new Simulation();sim.applyCfg({...DEFAULT_CFG,numAgents:50,reproductionOn:false});sim.regime=hyp.regime||"pluralist";const debtS=[],energyS=[];for(let i=0;i<depth*3*STEPS_PER_GEN;i++){sim.step();if(i%STEPS_PER_GEN===0){debtS.push(sim.stats.avgDebt);energyS.push(sim.stats.avgMoralEnergy);}}const negDelta=energyS.slice(0,-1).map((e,i)=>e-energyS[i+1]);const maxLag=Math.min(50,Math.floor(debtS.length/5));const lagCorr=lagCorrelation(debtS.slice(0,negDelta.length),negDelta,maxLag);const peak=lagCorr.reduce((b,c)=>c.r>b.r?c:b,{lag:0,r:-Infinity});return{hyp,lagCorr,peak,verdict:peak.r>0.3&&peak.lag>0?"SUPPORTED":peak.r>0.15?"WEAK":"REFUTED",stats:{r:peak.r,lag:peak.lag,r0:lagCorr[0]?.r||0}};}finally{Math.random=orig;}}
+  if(hyp.type==="sensitivity"){const ranges=[];for(const pk of hyp.params){const levels=PARAM_SPACE[pk]?.levels||[0.02,0.05,0.12];const byLevel=[];for(let li=0;li<levels.length;li++){const runs=[];for(let ri=0;ri<4;ri++)runs.push(runOneSim({...DEFAULT_CFG,[pk]:levels[li]},"pluralist",depth,(seed+li*1000+ri*100)>>>0));byLevel.push({val:levels[li],label:PARAM_SPACE[pk].fmt(levels[li]),avg:sMean(runs.map(r=>r[hyp.metric]||r.moralEnergy))});}const range=Math.max(...byLevel.map(e=>e.avg))-Math.min(...byLevel.map(e=>e.avg));ranges.push({pk,label:PARAM_SPACE[pk]?.label||pk,range,byLevel});onProg&&onProg(ranges.length,hyp.params.length);await new Promise(r=>setTimeout(r,0));}ranges.sort((a,b)=>b.range-a.range);return{hyp,ranges,verdict:ranges.length>=2&&(ranges[0].range-ranges[1].range)>0.04?"SUPPORTED":"INCONCLUSIVE",stats:{dominant:ranges[0]?.label,dominantRange:ranges[0]?.range,runnerUp:ranges[1]?.label,runnerUpRange:ranges[1]?.range}};}
+  const valsA=[],valsB=[];for(let i=0;i<nReps;i++){const rA=runOneSim({...DEFAULT_CFG,...(hyp.condA.cfg||{})},hyp.condA.regime,depth,(seed*0x9e3779b9+i*111)>>>0);const rB=runOneSim({...DEFAULT_CFG,...(hyp.condB.cfg||{})},hyp.condB.regime,depth,(seed*0x9e3779b9+i*222+1000000)>>>0);valsA.push(rA[hyp.metric]??rA.moralEnergy);valsB.push(rB[hyp.metric]??rB.moralEnergy);onProg&&onProg(i+1,nReps);if(i%3===2)await new Promise(r=>setTimeout(r,0));}
+  const stats=welchTest(valsA,valsB);const correctDir=hyp.direction>0?stats.meanA>stats.meanB:stats.meanA<stats.meanB;return{hyp,valsA,valsB,stats,verdict:correctDir&&stats.p<0.05?"SUPPORTED":correctDir&&stats.p<0.2?"WEAK":"REFUTED"};
+};
+const runTrajectoryTest=async(condA,condB,metric,depth,nReps,threshold,seed,onProg)=>{
+  const crossDir=METRIC_DIR[metric]??-1;const aucsA=[],aucsB=[],slopesA=[],slopesB=[],ttisA=[],ttisB=[];let repSeriesA=null,repSeriesB=null;
+  for(let i=0;i<nReps;i++){const rA=runOneSimSeries({...DEFAULT_CFG,...(condA.cfg||{})},condA.regime,depth,(seed+i*111)>>>0);const rB=runOneSimSeries({...DEFAULT_CFG,...(condB.cfg||{})},condB.regime,depth,(seed+i*222+1000000)>>>0);aucsA.push(auc(rA.series,metric));aucsB.push(auc(rB.series,metric));slopesA.push(linSlope(rA.series,metric));slopesB.push(linSlope(rB.series,metric));ttisA.push(timeToThreshold(rA.series,metric,threshold,crossDir));ttisB.push(timeToThreshold(rB.series,metric,threshold,crossDir));if(i===0){repSeriesA=rA.series;repSeriesB=rB.series;}onProg&&onProg(i+1,nReps);if(i%3===2)await new Promise(r=>setTimeout(r,0));}
+  return{condA,condB,metric,threshold,testAUC:welchTest(aucsA,aucsB),testSlope:welchTest(slopesA,slopesB),testTTI:welchTest(ttisA,ttisB),meanAucA:sMean(aucsA),meanAucB:sMean(aucsB),meanSlopeA:sMean(slopesA),meanSlopeB:sMean(slopesB),meanTtiA:sMean(ttisA),meanTtiB:sMean(ttisB),repSeriesA,repSeriesB};
+};
+const runFactorial=async(regA1,regA2,paramKey,paramLow,paramHigh,metric,depth,nReps,seed,onProg)=>{
+  const cellDefs=[{regime:regA1,cfg:{[paramKey]:paramLow}},{regime:regA1,cfg:{[paramKey]:paramHigh}},{regime:regA2,cfg:{[paramKey]:paramLow}},{regime:regA2,cfg:{[paramKey]:paramHigh}}];
+  const cellData=[[],[],[],[]];for(let i=0;i<nReps;i++){for(let c=0;c<4;c++){const s=(seed+i*100+c*10000)>>>0;const r=runOneSim({...DEFAULT_CFG,...cellDefs[c].cfg},cellDefs[c].regime,depth,s);cellData[c].push(r[metric]??r.moralEnergy);}onProg&&onProg(i+1,nReps);if(i%3===2)await new Promise(r=>setTimeout(r,0));}
+  const means=cellData.map(d=>sMean(d)),sds=cellData.map(d=>sStd(d));const mainA=(means[0]+means[1])/2-(means[2]+means[3])/2,mainB=(means[0]+means[2])/2-(means[1]+means[3])/2;
+  const intVals=cellData[0].map((_,i)=>(cellData[0][i]-cellData[1][i])-(cellData[2][i]-cellData[3][i]));const intMean=sMean(intVals),intSd=sStd(intVals);const intT=intMean/((intSd/Math.sqrt(intVals.length))||1e-10);const intP=Math.min(1,2*(1-normalCDF(Math.abs(intT))));
+  const testA=welchTest([...cellData[0],...cellData[1]],[...cellData[2],...cellData[3]]),testB=welchTest([...cellData[0],...cellData[2]],[...cellData[1],...cellData[3]]);
+  const pFmt=PARAM_SPACE[paramKey]?.fmt||String;return{means,sds,mainA,mainB,intMean,intP,testA,testB,labels:{A1:REGIMES[regA1]?.label||regA1,A2:REGIMES[regA2]?.label||regA2,B1:pFmt(paramLow),B2:pFmt(paramHigh)},regA1,regA2,paramKey,paramLow,paramHigh,metric};
+};
+const runRepairSweep=async(regimes,depth,nReps,seed,onProg)=>{
+  const levels=[0.01,0.03,0.05,0.07,0.09,0.12,0.16,0.20];const seriesByRegime={};let done=0;
+  for(const regime of regimes){seriesByRegime[regime]=[];for(const rate of levels){const runs=[];for(let i=0;i<nReps;i++)runs.push(runOneSim({...DEFAULT_CFG,moralRepairRate:rate},regime,depth,(seed+regime.length*100+Math.round(rate*1000)+i*7)>>>0));seriesByRegime[regime].push({rate,avg:+sMean(runs.map(r=>r.moralEnergy)).toFixed(4)});done++;onProg&&onProg(done,regimes.length*levels.length);if(done%4===0)await new Promise(r=>setTimeout(r,0));}}
+  const slopes=regimes.map(regime=>{const pts=seriesByRegime[regime];const xs=pts.map(p=>p.rate),ys=pts.map(p=>p.avg),mx=sMean(xs),my=sMean(ys);const slope=xs.reduce((s,x,i)=>s+(x-mx)*(ys[i]-my),0)/xs.reduce((s,x)=>s+(x-mx)**2,0);return{regime,label:REGIMES[regime]?.label||regime,color:REGIMES[regime]?.color||"#888",slope:+slope.toFixed(3)};}).sort((a,b)=>b.slope-a.slope);
+  const chartData=levels.map((rate,li)=>{const row={rate};regimes.forEach(reg=>{row[reg]=seriesByRegime[reg][li]?.avg;});return row;});return{seriesByRegime,slopes,chartData,regimes};
+};
+const buildRuns=(regimes,params,depth,baseCfg)=>{const pkeys=Object.keys(params).filter(k=>params[k]);const combos=pkeys.reduce((acc,k)=>acc.flatMap(c=>PARAM_SPACE[k].levels.map(v=>[...c,[k,v]])),[[]]); return regimes.flatMap(regime=>combos.map(combo=>{const cfg={...baseCfg,numAgents:40};const paramVals={};combo.forEach(([k,v])=>{cfg[k]=v;paramVals[k]=v;});return{regime,cfg,depth,paramVals};}));};
+const analyzeResults=results=>{if(!results.length)return{regimeAvg:[],paramSensitivity:[],findings:[]};const regimes=[...new Set(results.map(r=>r.regime))];const regimeAvg=regimes.map(regime=>{const runs=results.filter(r=>r.regime===regime);const avg=k=>sMean(runs.map(r=>r[k]||0));return{regime,label:REGIMES[regime]?.label||regime,color:REGIMES[regime]?.color||"#888",energy:avg('moralEnergy'),energySd:sStd(runs.map(r=>r.moralEnergy||0)),fulfillRate:avg('fulfillRate'),n:runs.length};}).sort((a,b)=>b.energy-a.energy);const paramSensitivity=Object.keys(PARAM_SPACE).map(k=>{const levels=[...new Set(results.map(r=>r[k]).filter(v=>v!=null))].sort((a,b)=>a-b);if(levels.length<2)return null;const byLevel=levels.map(v=>{const runs=results.filter(r=>r[k]===v);return{v,label:PARAM_SPACE[k].fmt(v),avg:sMean(runs.map(r=>r.moralEnergy))};});const range=Math.max(...byLevel.map(e=>e.avg))-Math.min(...byLevel.map(e=>e.avg));return{key:k,label:PARAM_SPACE[k].label,range,trend:byLevel[byLevel.length-1].avg-byLevel[0].avg,levels:byLevel};}).filter(Boolean).sort((a,b)=>b.range-a.range);const best=regimeAvg[0],worst=regimeAvg[regimeAvg.length-1];const pct=v=>(v*100).toFixed(1)+"%",pp=v=>(Math.abs(v)*100).toFixed(1)+"pp";return{regimeAvg,paramSensitivity,findings:[`${best?.label} achieved highest moral coherence (${pct(best?.energy||0)}). ${worst?.label} performed weakest (${pct(worst?.energy||0)}). The ${pp((best?.energy||0)-(worst?.energy||0))} gap suggests regime is a ${((best?.energy||0)-(worst?.energy||0))>0.15?"primary":"secondary"} determinant of moral stability.`]};};
+const dlCSV=(data,name)=>{if(!data.length)return;const keys=Object.keys(data[0]);const blob=new Blob([[keys.join(","),...data.map(r=>keys.map(k=>r[k]??'').join(","))].join("\n")],{type:"text/csv"});Object.assign(document.createElement("a"),{href:URL.createObjectURL(blob),download:name}).click();};
+
+// ── Main component ────────────────────────────────────────────────────────
+export default function SimEthica3D(){
+  const mountRef=useRef(null),simRef=useRef(null),regimeRef=useRef("pluralist"),pausedRef=useRef(false),speedRef=useRef(1),cancelRef=useRef(false);
+  if(!simRef.current)simRef.current=new Simulation();
+  const[ds,setDs]=useState({...simRef.current.stats,generation:0});
+  const[history,setHistory]=useState([]);
+  const[regime,setRegime]=useState("pluralist");
+  const[paused,setPaused]=useState(false);
+  const[speed,setSpeed]=useState(1);
+  const[showCharts,setShowCharts]=useState(true);
+  const[showParams,setShowParams]=useState(false);
+  const[showHistory,setShowHistory]=useState(false);
+  const[cfg,setCfg]=useState({...DEFAULT_CFG});
+  const[expState,setExpState]=useState('idle');
+  const[expCfg,setExpCfg]=useState({seed:42,depth:200,regimes:Object.keys(REGIMES),params:{trustDecay:true,moralRepairRate:true,epistemicVariance:false,obligationRadius:false,beliefSimilarityReq:false}});
+  const[expProgress,setExpProgress]=useState({current:0,total:0});
+  const[expResults,setExpResults]=useState([]);
+  const[expAnalysis,setExpAnalysis]=useState(null);
+  const[showScience,setShowScience]=useState(false);
+  const[sciTab,setSciTab]=useState('hypotheses');
+  const[sciCfg,setSciCfg]=useState({seed:42,nReps:12,depth:200,lagDepth:400,lagRegime:'pluralist',sweepRegimes:['pluralist','authoritarian','egalitarian','utilitarian'],sweepReps:6});
+  const[hypResults,setHypResults]=useState({});
+  const[hypRunning,setHypRunning]=useState(null);
+  const[lagResult,setLagResult]=useState(null);
+  const[sweepResult,setSweepResult]=useState(null);
+  const[sciProgress,setSciProgress]=useState({current:0,total:0});
+  const[sortKey,setSortKey]=useState('moralEnergy');
+  const[sortDir,setSortDir]=useState(-1);
+  const[customHyps,setCustomHyps]=useState([]);
+  const[customResults,setCustomResults]=useState({});
+  const[draft,setDraft]=useState({...BLANK_DRAFT});
+  const[showBuilder,setShowBuilder]=useState(false);
+  const[factCfg,setFactCfg]=useState({regimeA1:"pluralist",regimeA2:"authoritarian",paramKey:"moralRepairRate",paramLow:0.02,paramHigh:0.12,metric:"energy",nReps:12,depth:200});
+  const[factResult,setFactResult]=useState(null);
+  const[trajCfg,setTrajCfg]=useState({condA:{regime:"pluralist",cfg:{},cfgKey:"",cfgVal:"",label:"Pluralist"},condB:{regime:"authoritarian",cfg:{},cfgKey:"",cfgVal:"",label:"Authoritarian"},metric:"energy",threshold:0.4,nReps:12,depth:250});
+  const[trajResult,setTrajResult]=useState(null);
+
+  const handleRegime=r=>{regimeRef.current=r;simRef.current.regime=r;setRegime(r);};
+  const handlePause=()=>{const np=!pausedRef.current;pausedRef.current=np;setPaused(np);};
+  const handleSpeed=s=>{speedRef.current=s;setSpeed(s);};
+  const handleReseed=()=>{simRef.current.reseed();simRef.current.regime=regimeRef.current;setDs({...simRef.current.stats,generation:0});setHistory([]);};
+  const handleCfg=useCallback((key,val)=>{const next={...simRef.current.cfg,[key]:val};setCfg({...next});simRef.current.applyCfg(next);},[]);
+  const allHyps=[...BUILTIN_HYPS,...customHyps];
+  const allHypResults={...hypResults,...customResults};
+
+  const runHyp=useCallback(async hyp=>{
+    setHypRunning(hyp.id);setSciProgress({current:0,total:sciCfg.nReps});
+    try{const res=await runHypTest(hyp,sciCfg.nReps,sciCfg.depth,sciCfg.seed,(c,t)=>setSciProgress({current:c,total:t}));if(customHyps.some(h=>h.id===hyp.id))setCustomResults(p=>({...p,[hyp.id]:res}));else setHypResults(p=>({...p,[hyp.id]:res}));}
+    finally{setHypRunning(null);}
+  },[sciCfg,customHyps]);
+  const runAllHyps=useCallback(async()=>{for(const hyp of allHyps){setHypRunning(hyp.id);const res=await runHypTest(hyp,sciCfg.nReps,sciCfg.depth,sciCfg.seed,(c,t)=>setSciProgress({current:c,total:t}));if(customHyps.some(h=>h.id===hyp.id))setCustomResults(p=>({...p,[hyp.id]:res}));else setHypResults(p=>({...p,[hyp.id]:res}));}setHypRunning(null);},[sciCfg,allHyps,customHyps]);
+  const runLag=useCallback(async()=>{setHypRunning('lag');const res=await runHypTest({...BUILTIN_HYPS[5],regime:sciCfg.lagRegime},sciCfg.nReps,sciCfg.lagDepth,sciCfg.seed,()=>{});setLagResult(res);setHypRunning(null);},[sciCfg]);
+  const runSweep=useCallback(async()=>{setHypRunning('sweep');setSciProgress({current:0,total:sciCfg.sweepRegimes.length*8});const res=await runRepairSweep(sciCfg.sweepRegimes,sciCfg.depth,sciCfg.sweepReps,sciCfg.seed,(c,t)=>setSciProgress({current:c,total:t}));setSweepResult(res);setHypRunning(null);},[sciCfg]);
+  const runFact=useCallback(async()=>{setHypRunning('factorial');setSciProgress({current:0,total:factCfg.nReps});const res=await runFactorial(factCfg.regimeA1,factCfg.regimeA2,factCfg.paramKey,factCfg.paramLow,factCfg.paramHigh,factCfg.metric,factCfg.depth,factCfg.nReps,sciCfg.seed,(c,t)=>setSciProgress({current:c,total:t}));setFactResult(res);setHypRunning(null);},[factCfg,sciCfg.seed]);
+  const runTraj=useCallback(async()=>{setHypRunning('trajectory');setSciProgress({current:0,total:trajCfg.nReps});const cA={regime:trajCfg.condA.regime,cfg:trajCfg.condA.cfgKey?{[trajCfg.condA.cfgKey]:parseFloat(trajCfg.condA.cfgVal)||0}:{},label:trajCfg.condA.label};const cB={regime:trajCfg.condB.regime,cfg:trajCfg.condB.cfgKey?{[trajCfg.condB.cfgKey]:parseFloat(trajCfg.condB.cfgVal)||0}:{},label:trajCfg.condB.label};const res=await runTrajectoryTest(cA,cB,trajCfg.metric,trajCfg.depth,trajCfg.nReps,trajCfg.threshold,sciCfg.seed,(c,t)=>setSciProgress({current:c,total:t}));setTrajResult(res);setHypRunning(null);},[trajCfg,sciCfg.seed]);
+
+  const saveCustomHyp=useCallback(()=>{
+    if(!draft.label)return;
+    const condACfg={};if(draft.condA.cfgKey&&draft.condA.cfgVal!=="")condACfg[draft.condA.cfgKey]=parseFloat(draft.condA.cfgVal);
+    const condBCfg={};if(draft.condB.cfgKey&&draft.condB.cfgVal!=="")condBCfg[draft.condB.cfgKey]=parseFloat(draft.condB.cfgVal);
+    const hyp={id:`c_${Date.now()}`,label:draft.label,cite:draft.cite,prediction:draft.prediction||`${draft.condA.label} vs ${draft.condB.label} on ${draft.metric}`,condA:{regime:draft.condA.regime,cfg:condACfg,label:draft.condA.label||REGIMES[draft.condA.regime]?.label},condB:{regime:draft.condB.regime,cfg:condBCfg,label:draft.condB.label||REGIMES[draft.condB.regime]?.label},metric:draft.metric,direction:draft.direction};
+    setCustomHyps(p=>[...p,hyp]);setDraft({...BLANK_DRAFT});setShowBuilder(false);
+  },[draft]);
+
+  const startExp=useCallback(async()=>{cancelRef.current=false;const runs=buildRuns(expCfg.regimes,expCfg.params,expCfg.depth,{...simRef.current.cfg});setExpProgress({current:0,total:runs.length});setExpState('running');const results=[];for(let i=0;i<runs.length;i++){if(cancelRef.current)break;const r=runOneSim(runs[i].cfg,runs[i].regime,runs[i].depth,(expCfg.seed*0x9e3779b9+i*1234567)>>>0);results.push({regime:runs[i].regime,...runs[i].paramVals,...r});setExpProgress({current:i+1,total:runs.length});if(i%4===3)await new Promise(r=>setTimeout(r,0));}setExpResults(results);setExpAnalysis(analyzeResults(results));setExpState('results');},[expCfg]);
+
+  useEffect(()=>{
+    const mount=mountRef.current,w=mount.clientWidth,ht=mount.clientHeight;
+    const renderer=new THREE.WebGLRenderer({antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));renderer.setSize(w,ht);renderer.setClearColor(0x06080f,1);mount.appendChild(renderer.domElement);
+    const scene=new THREE.Scene();scene.fog=new THREE.FogExp2(0x06080f,0.0016);const camera=new THREE.PerspectiveCamera(55,w/ht,1,3000);
+    scene.add(new THREE.AmbientLight(0x223355,1.2));const dl=new THREE.DirectionalLight(0xffffff,0.7);dl.position.set(2,3,1);scene.add(dl);const pl=new THREE.PointLight(0x4488ff,0.5,900);pl.position.set(0,250,0);scene.add(pl);
+    scene.add(new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(WORLD*2,WORLD*2,WORLD*2)),new THREE.LineBasicMaterial({color:0x1a3050,transparent:true,opacity:0.55})));
+    const sBuf=new Float32Array(6000);for(let i=0;i<6000;i++)sBuf[i]=(Math.random()-0.5)*5000;const sGeo=new THREE.BufferGeometry();sGeo.setAttribute("position",new THREE.BufferAttribute(sBuf,3));scene.add(new THREE.Points(sGeo,new THREE.PointsMaterial({color:0xffffff,size:1.5,transparent:true,opacity:0.28})));
+    const agGeo=new THREE.SphereGeometry(1,10,7),agMat=new THREE.MeshPhongMaterial({shininess:70});const agMesh=new THREE.InstancedMesh(agGeo,agMat,MAX_AGENTS);agMesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);agMesh.instanceColor=new THREE.InstancedBufferAttribute(new Float32Array(MAX_AGENTS*3),3);scene.add(agMesh);
+    const obPos=new Float32Array(MAX_LINES*6),obCol=new Float32Array(MAX_LINES*6),obGeo=new THREE.BufferGeometry();const obPA=new THREE.BufferAttribute(obPos,3),obCA=new THREE.BufferAttribute(obCol,3);obPA.setUsage(THREE.DynamicDrawUsage);obCA.setUsage(THREE.DynamicDrawUsage);obGeo.setAttribute("position",obPA);obGeo.setAttribute("color",obCA);obGeo.setDrawRange(0,0);scene.add(new THREE.LineSegments(obGeo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.7})));
+    const orbit={theta:0.5,phi:1.1,radius:570,dragging:false,lastX:0,lastY:0};const updCam=()=>{const sp=Math.sin(orbit.phi),cp=Math.cos(orbit.phi),st=Math.sin(orbit.theta),ct=Math.cos(orbit.theta);camera.position.set(orbit.radius*sp*st,orbit.radius*cp,orbit.radius*sp*ct);camera.lookAt(0,0,0);};updCam();
+    const dom=renderer.domElement;
+    dom.addEventListener("mousedown",e=>{orbit.dragging=true;orbit.lastX=e.clientX;orbit.lastY=e.clientY;});dom.addEventListener("mousemove",e=>{if(!orbit.dragging)return;orbit.theta-=(e.clientX-orbit.lastX)*0.005;orbit.phi=Math.max(0.1,Math.min(Math.PI-0.1,orbit.phi+(e.clientY-orbit.lastY)*0.005));orbit.lastX=e.clientX;orbit.lastY=e.clientY;updCam();});dom.addEventListener("mouseup",()=>{orbit.dragging=false;});dom.addEventListener("mouseleave",()=>{orbit.dragging=false;});dom.addEventListener("wheel",e=>{orbit.radius=Math.max(120,Math.min(1400,orbit.radius+e.deltaY*0.4));updCam();},{passive:true});window.addEventListener("resize",()=>{const nw=mount.clientWidth,nh=mount.clientHeight;renderer.setSize(nw,nh);camera.aspect=nw/nh;camera.updateProjectionMatrix();});
+    const m4=new THREE.Matrix4(),q0=new THREE.Quaternion(),sv=new THREE.Vector3(),lc=new THREE.Color();let raf,tick=0;
+    const animate=()=>{raf=requestAnimationFrame(animate);tick++;const sim=simRef.current;if(!pausedRef.current)for(let s=0;s<speedRef.current;s++)sim.step();const agents=sim.agents;agMesh.count=Math.min(agents.length,MAX_AGENTS);for(let i=0;i<agMesh.count;i++){const a=agents[i],sc=2.5+a.epistemicAutonomy*3.5;sv.set(sc,sc,sc);m4.compose(a.pos,q0,sv);agMesh.setMatrixAt(i,m4);agMesh.setColorAt(i,a.getColor(sim.regime));}agMesh.instanceMatrix.needsUpdate=true;if(agMesh.instanceColor)agMesh.instanceColor.needsUpdate=true;let lCount=0;for(let i=0;i<sim.obligations.length&&lCount<MAX_LINES;i++){const ob=sim.obligations[i],alpha=ob.state==="active"?1:Math.max(0,1-ob.flashAge/28);if(alpha<=0.01)continue;lc.copy(ob.state==="fulfilled"?Cv.fulfilled:ob.state==="denied"?Cv.denied:ob.state==="expired"?Cv.expired:Cv.active);const base=lCount*6,ip=ob.issuer.pos,tp=ob.target.pos;obPos[base]=ip.x;obPos[base+1]=ip.y;obPos[base+2]=ip.z;obPos[base+3]=tp.x;obPos[base+4]=tp.y;obPos[base+5]=tp.z;obCol[base]=lc.r*alpha;obCol[base+1]=lc.g*alpha;obCol[base+2]=lc.b*alpha;obCol[base+3]=lc.r*alpha;obCol[base+4]=lc.g*alpha;obCol[base+5]=lc.b*alpha;lCount++;}obPA.needsUpdate=true;obCA.needsUpdate=true;obGeo.setDrawRange(0,lCount*2);if(!orbit.dragging){orbit.theta+=0.0008;updCam();}renderer.render(scene,camera);if(tick%20===0){setDs({...sim.stats,generation:sim.generation});setHistory(sim.history.slice());}};
+    animate();
+    return()=>{cancelAnimationFrame(raf);agGeo.dispose();agMat.dispose();obGeo.dispose();sGeo.dispose();renderer.dispose();if(mount.contains(dom))mount.removeChild(dom);};
+  },[]);
+
+  const pct=v=>(v*100).toFixed(1)+"%";
+  const barEl=(v,c)=>({display:"inline-block",width:Math.round(Math.min(1,Math.max(0,v))*62)+"px",height:"6px",background:c,borderRadius:3,verticalAlign:"middle",marginLeft:6});
+  const Btn=({active,onClick,label,color="#8899aa",disabled:dis})=>h("button",{onClick,disabled:dis,style:{padding:"5px 11px",borderRadius:16,border:"1px solid",cursor:dis?"not-allowed":"pointer",fontSize:10,fontFamily:"monospace",borderColor:active?color:"#2a3a50",background:active?`${color}33`:"rgba(4,8,20,0.8)",color:active?color:dis?T.dim:T.muted,whiteSpace:"nowrap",opacity:dis?0.5:1}},label);
+  const SliderEl=({label:lb,paramKey,min,max,step,fmt,val,onChange})=>{const v=val!==undefined?val:(cfg[paramKey]??min);return h("div",{style:{marginBottom:8}},h("div",{style:{display:"flex",justifyContent:"space-between",marginBottom:2}},h("span",{style:{fontSize:10,color:T.label}},lb),h("span",{style:{fontSize:10,color:T.cyan,fontWeight:"bold"}},fmt?fmt(v):v)),h("input",{type:"range",min,max,step,value:v,onChange:e=>onChange?onChange(parseFloat(e.target.value)):handleCfg(paramKey,parseFloat(e.target.value)),style:{width:"100%",accentColor:T.cyan,cursor:"pointer"}}));};
+  const ToggleEl=({label:lb,paramKey})=>h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}},h("span",{style:{fontSize:10,color:T.label}},lb),h("div",{onClick:()=>handleCfg(paramKey,!cfg[paramKey]),style:{width:36,height:18,borderRadius:9,cursor:"pointer",position:"relative",background:cfg[paramKey]?"#00cc6688":"#1a2a40",border:`1px solid ${cfg[paramKey]?"#00cc66":"#2a3a50"}`}},h("div",{style:{position:"absolute",top:2,left:cfg[paramKey]?18:2,width:12,height:12,borderRadius:"50%",background:cfg[paramKey]?"#00cc66":T.dim,transition:"left .2s"}})));
+  const VerdictBadge=({verdict})=>{const vc={SUPPORTED:{c:T.green,bg:"rgba(0,200,100,0.15)"},REFUTED:{c:T.red,bg:"rgba(255,80,50,0.15)"},WEAK:{c:T.orange,bg:"rgba(255,170,0,0.12)"},INCONCLUSIVE:{c:T.muted,bg:"rgba(100,150,200,0.1)"}};const s=vc[verdict]||vc.INCONCLUSIVE;return h("span",{style:{padding:"2px 10px",borderRadius:10,fontSize:10,fontWeight:"bold",color:s.c,background:s.bg,border:`1px solid ${s.c}44`}},verdict);};
+  const NumInput=({label:lb,val,onChange,min,max,step,w=60})=>h("span",{style:{fontSize:10,color:T.label,marginRight:8}},lb,": ",h("input",{type:"number",value:val,min,max,step,onChange:e=>onChange(+e.target.value),style:{width:w,background:"#0a1428",border:"1px solid #1e3050",color:T.cyan,padding:"2px 4px",borderRadius:4,fontSize:10,fontFamily:"monospace"}}));
+  const Overlay=({children,zIndex=20})=>h("div",{style:{position:"absolute",top:0,left:0,right:0,bottom:0,background:"rgba(3,6,18,0.97)",zIndex,padding:"20px 24px",overflowY:"auto"}},children);
+  const StatCard=({label:lb,test,condALabel,condBLabel})=>{if(!test||!test.valid)return null;return h("div",{style:{...pnl,padding:"10px",marginBottom:8}},h("div",{style:{color:T.label,fontSize:10,fontWeight:"bold",marginBottom:6}},lb),h("div",{style:{display:"flex",gap:8,marginBottom:4}},h("div",{style:{flex:1,background:"rgba(255,255,255,0.03)",borderRadius:4,padding:"5px 7px"}},h("div",{style:{fontSize:8,color:T.dim}},condALabel||"A"),h("div",{style:{fontSize:12,color:T.cyan,fontWeight:"bold"}},test.meanA.toFixed(4))),h("div",{style:{flex:1,background:"rgba(255,255,255,0.03)",borderRadius:4,padding:"5px 7px"}},h("div",{style:{fontSize:8,color:T.dim}},condBLabel||"B"),h("div",{style:{fontSize:12,color:T.orange,fontWeight:"bold"}},test.meanB.toFixed(4)))),h("div",{style:{fontSize:9,color:T.label,lineHeight:1.8}},h("span",{style:{color:test.p<0.05?T.green:T.orange}},`p=${test.p<0.001?"<0.001":test.p.toFixed(3)}`),` t=${test.t.toFixed(2)} `,h("span",{style:{color:Math.abs(test.d||0)>0.5?T.green:T.muted}},`d=${(test.d||0).toFixed(3)} (${Math.abs(test.d||0)>0.8?"large":Math.abs(test.d||0)>0.5?"medium":"small"})`)));};
+
+  const HypCard=({hyp,res,onRun,onDelete})=>h("div",{style:{...pnl,padding:"12px"}},
+    h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:4}},
+      h("div",{style:{color:T.primary,fontSize:11,fontWeight:"bold",flex:1,marginRight:8}},hyp.label),
+      h("div",{style:{display:"flex",gap:4,alignItems:"center"}},res&&h(VerdictBadge,{verdict:res.verdict}),onDelete&&h("button",{onClick:onDelete,style:{background:"transparent",border:"none",color:T.red,cursor:"pointer",fontSize:12,padding:"0 4px"}},"✕"))
+    ),
+    hyp.cite&&h("div",{style:{color:T.dim,fontSize:9,fontStyle:"italic",marginBottom:4}},hyp.cite),
+    h("div",{style:{color:T.muted,fontSize:9,marginBottom:8}},hyp.prediction),
+    res&&res.stats&&res.stats.valid&&!res.lagCorr&&!res.ranges&&h("div",null,
+      h("div",{style:{display:"flex",gap:8,marginBottom:6}},
+        [[hyp.condA?.label||"A",res.stats.meanA,res.stats.sdA,T.cyan],[hyp.condB?.label||"B",res.stats.meanB,res.stats.sdB,T.orange]].map(([lb,mean,sd,color])=>h("div",{key:lb,style:{flex:1,background:"rgba(255,255,255,0.03)",borderRadius:6,padding:"5px 7px"}},h("div",{style:{fontSize:8,color:T.dim}},lb),h("div",{style:{fontSize:13,color,fontWeight:"bold"}},mean.toFixed(3)),h("div",{style:{fontSize:8,color:T.dim}},`SD ${(sd||0).toFixed(3)}`)))
+      ),
+      h("div",{style:{fontSize:9,color:T.label,lineHeight:1.9}},
+        h("span",{style:{color:res.stats.p<0.05?T.green:T.orange}},`p=${res.stats.p<0.001?"<0.001":res.stats.p.toFixed(3)}`),` t=${res.stats.t.toFixed(2)} `,
+        h("span",{style:{color:Math.abs(res.stats.d||0)>0.5?T.green:T.muted}},`d=${(res.stats.d||0).toFixed(3)} (${Math.abs(res.stats.d||0)>0.8?"large":Math.abs(res.stats.d||0)>0.5?"medium":"small"})`)
+      ),
+      h(MiniBar,{data:[{name:hyp.condA?.label||"A",val:res.stats.meanA},{name:hyp.condB?.label||"B",val:res.stats.meanB}],valueKey:"val",labelKey:"name",color:T.cyan})
+    ),
+    res&&res.ranges&&h("div",{style:{fontSize:9,color:T.label,lineHeight:1.9}},`Dominant: ${res.stats.dominant} (${((res.stats.dominantRange||0)*100).toFixed(1)}pp) Runner-up: ${res.stats.runnerUp}`),
+    res&&res.lagCorr&&h("div",{style:{fontSize:9,color:T.label,lineHeight:1.9}},`Peak lag: ${res.peak.lag} gen  r=${res.peak.r.toFixed(3)}`),
+    h("div",{style:{marginTop:8}},h(Btn,{onClick:onRun,disabled:!!hypRunning,label:hypRunning===hyp.id?"Running…":"▶ Run",color:T.cyan}))
+  );
+
+  // Helper to build a condition panel using only pill buttons
+  const CondPanel=({label:lb,cond,setCond})=>h("div",{style:{...pnl,padding:"10px"}},
+    h("div",{style:{color:T.cyan,fontSize:10,fontWeight:"bold",marginBottom:8}},lb),
+    h(Label,null,"Regime"),
+    h(Pills,{options:Object.entries(REGIMES).map(([k,v])=>({value:k,label:v.label,color:v.color})),val:cond.regime,onChange:v=>setCond({...cond,regime:v,label:REGIMES[v]?.label||v})}),
+    h("div",{style:{marginTop:10}}),
+    h(Label,null,"Param override"),
+    h(Pills,{options:[{value:"",label:"none"},...Object.entries(PARAM_SPACE).map(([k,v])=>({value:k,label:v.label}))],val:cond.cfgKey||"",onChange:v=>setCond({...cond,cfgKey:v,cfgVal:""})}),
+    cond.cfgKey&&h("div",{style:{marginTop:8}},
+      h(Label,null,"Level"),
+      h(Pills,{options:(PARAM_SPACE[cond.cfgKey]?.levels||[]).map(v=>({value:""+v,label:PARAM_SPACE[cond.cfgKey].fmt(v)})),val:""+cond.cfgVal,onChange:v=>setCond({...cond,cfgVal:v})})
+    ),
+    h("div",{style:{marginTop:10}}),
+    h(Label,null,"Display label"),
+    h("input",{type:"text",value:cond.label||"",onChange:e=>setCond({...cond,label:e.target.value}),style:{width:"100%",background:"#0a1428",border:"1px solid #1e3050",color:T.primary,padding:"5px 8px",borderRadius:4,fontSize:11,fontFamily:"monospace"}})
+  );
+
+  const ri=REGIMES[regime];
+  const ev=ds.avgMoralEnergy||0,tv=ds.avgTrust||0,dv=ds.avgDebt||0,eav=ds.epistemicAgency||0,cav=ds.cognitiveAutonomy||0;
+  const estimatedRuns=expCfg.regimes.length*Math.pow(3,Object.values(expCfg.params).filter(Boolean).length);
+  const sortedResults=[...expResults].sort((a,b)=>sortDir*(a[sortKey]<b[sortKey]?-1:1));
+  const expParamCols=Object.keys(PARAM_SPACE).filter(k=>expResults.some(r=>r[k]!=null));
+
+  return h("div",{style:{width:"100%",height:"100vh",position:"relative",background:"#06080f",fontFamily:"monospace",overflow:"hidden"}},
+    h("div",{ref:mountRef,style:{width:"100%",height:"100%"}}),
+
+    // Branding
+    h("div",{style:{position:"absolute",top:14,left:16,pointerEvents:"none"}},
+      h("div",{style:{fontSize:18,fontWeight:"bold",letterSpacing:3,color:T.cyan}},"SimEthica"),
+      h("div",{style:{fontSize:9,color:T.muted}},"Geometry of the Good · 3D"),
+      h("div",{style:{fontSize:9,color:T.dim}},"© David Koepsell 2025")
+    ),
+
+    // Regime badge
+    h("div",{style:{position:"absolute",top:14,left:"50%",transform:"translateX(-50%)",textAlign:"center",pointerEvents:"none"}},
+      h("div",{style:{padding:"5px 18px",borderRadius:20,background:`${ri.color}22`,border:`1px solid ${ri.color}`,color:ri.color,fontSize:11,fontWeight:"bold",letterSpacing:1.5}},ri.label),
+      (ds.extPressure||0)>0.01&&h("div",{style:{fontSize:9,color:T.red,marginTop:2}},`Pressure: ${pct(ds.extPressure||0)}`),
+      h("div",{style:{fontSize:10,color:T.dim,marginTop:2}},"Gen ",h("span",{style:{color:T.primary}},ds.generation)," | Pop ",h("span",{style:{color:T.green}},ds.population)," | ↑",h("span",{style:{color:"#aaffcc"}},simRef.current?.totalBirths||0)," ↓",h("span",{style:{color:"#ffaaaa"}},simRef.current?.totalDeaths||0))
+    ),
+
+    // Stats
+    h("div",{style:{position:"absolute",top:14,right:14,...pnl,minWidth:230,fontSize:11,lineHeight:2.1}},
+      h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},"METRICS"),
+      [["Moral Energy",ev,ev>0.5?T.cyan:T.orange],["Avg Trust",tv,T.green],["Min Energy",ds.minMoralEnergy||0,"#88ffcc"],["Epistemic Agency",eav,regime==="authoritarian"?T.orange:T.purple],["Cognitive Autonomy",cav,"#cc99ff"]].map(([l,v,c])=>h("div",{key:l,style:{color:T.label}},l,h("span",{style:barEl(v,c)}),h("span",{style:{marginLeft:8,color:c,fontWeight:"bold"}},pct(v)))),
+      h("div",{style:{color:dv>0.4?T.red:T.orange}},"Contradiction Debt",h("span",{style:barEl(Math.min(1,dv),dv>0.4?T.red:T.orange)}),h("span",{style:{marginLeft:8,fontWeight:"bold"}},dv.toFixed(3))),
+      h("div",{style:{marginTop:8,paddingTop:7,borderTop:"1px solid #1e3050",fontSize:10,lineHeight:1.8}},h("span",{style:{color:"#8899ff"}},"⬤ ",ds.issued)," issued ",h("span",{style:{color:T.green}},"⬤ ",ds.fulfilled)," fulfilled",h("br"),h("span",{style:{color:T.red}},"⬤ ",ds.denied)," denied ",h("span",{style:{color:"#7788aa"}},"⬤ ",ds.expired)," expired")
+    ),
+
+    // Params panel
+    showParams&&h("div",{style:{position:"absolute",top:14,left:80,...pnl,width:228,zIndex:10,maxHeight:"85vh",overflowY:"auto"}},
+      h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:10}},"PARAMETERS"),
+      h("div",{style:{color:T.orange,fontSize:10,fontWeight:"bold",marginBottom:6}},"CORE"),
+      ...[["Num Agents","numAgents",10,200,5,v=>""+Math.round(v)],["Obligation Radius","obligationRadius",15,90,5,v=>""+Math.round(v)],["Moral Repair Rate","moralRepairRate",0.01,0.20,0.005,v=>v.toFixed(3)],["Cognitive Weight","cognitiveWeight",0,0.8,0.05,v=>v.toFixed(2)],["Epistemic Variance","epistemicVariance",0.02,0.5,0.02,v=>v.toFixed(2)],["Trust Decay","trustDecay",0.0005,0.02,0.0005,v=>v.toFixed(4)],["Obligation Life","obligationLife",40,400,10,v=>""+Math.round(v)],["Death Threshold","deathThresh",0.01,0.25,0.01,v=>v.toFixed(2)]].map(([lb,pk,mn,mx,st,fmt])=>h(SliderEl,{key:pk,label:lb,paramKey:pk,min:mn,max:mx,step:st,fmt})),
+      h("div",{style:{color:T.orange,fontSize:10,fontWeight:"bold",marginBottom:6,marginTop:8}},"REGIME DRIFT"),
+      h(SliderEl,{label:"External Pressure",paramKey:"extPressure",min:0,max:1,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Pressure Ramp",paramKey:"pressureRamp",min:0,max:0.005,step:0.0005,fmt:v=>v.toFixed(4)}),
+      h("div",{style:{color:T.orange,fontSize:10,fontWeight:"bold",marginBottom:6,marginTop:8}},"REPRODUCTION"),
+      h(ToggleEl,{label:"Reproduction On",paramKey:"reproductionOn"}),
+      h(SliderEl,{label:"Energy Threshold",paramKey:"reproEnergyThresh",min:0.1,max:0.9,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Trust Threshold",paramKey:"reproTrustThresh",min:0.05,max:0.8,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Belief Similarity",paramKey:"beliefSimilarityReq",min:-1,max:0.9,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Inheritance Str.",paramKey:"inheritanceStrength",min:0.1,max:1.0,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Max Population",paramKey:"maxPopulation",min:50,max:3000,step:50,fmt:v=>""+Math.round(v)}),
+      h("div",{style:{color:T.orange,fontSize:10,fontWeight:"bold",marginBottom:6,marginTop:8}},"REGIME-SPECIFIC"),
+      h(SliderEl,{label:"Consent Threshold",paramKey:"consentThreshold",min:0.1,max:0.9,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Utilitarian Bias",paramKey:"utilBias",min:0,max:1,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Anarchy Voluntarism",paramKey:"anarchyVoluntarism",min:0.05,max:0.9,step:0.05,fmt:v=>v.toFixed(2)}),
+      h(SliderEl,{label:"Group Count",paramKey:"groupCount",min:2,max:8,step:1,fmt:v=>""+Math.round(v)})
+    ),
+
+    // Sparklines
+    showCharts&&history.length>3&&!showHistory&&!showScience&&expState==='idle'&&h("div",{style:{position:"absolute",bottom:90,right:14,...pnl,width:240}},
+      h("div",{style:{color:T.cyan,fontSize:10,fontWeight:"bold",marginBottom:6}},"HISTORY"),
+      ...[["Moral Energy",["energy","minEnergy"],["#00e5ff","#44ffcc"]],["Trust / Debt",["trust","debt"],["#44ff88","#ff5555"]],["Epistemic",["ea","ca"],["#9988ff","#cc99ff"]],["Population",["pop"],["#ffdd00"]]].map(([title,keys,colors])=>h("div",{key:title,style:{marginBottom:8}},h("div",{style:{fontSize:9,color:T.muted,marginBottom:1}},title),h(MiniLine,{data:history,keys,colors})))
+    ),
+
+    // Full history
+    showHistory&&h(Overlay,null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},
+        h("div",{style:{color:T.cyan,fontSize:14,fontWeight:"bold"}},"FULL GENERATIONAL HISTORY"),
+        h("div",{style:{display:"flex",gap:8}},h(Btn,{onClick:()=>dlCSV(simRef.current?.fullHistory||[],"wide.csv"),label:"⬇ Wide CSV",color:T.green}),h(Btn,{onClick:()=>setShowHistory(false),label:"✕",color:T.red}))
+      ),
+      ...[{title:"Moral Energy",keys:["energy","minEnergy"],colors:["#00e5ff","#44ffcc"]},{title:"Trust / Debt",keys:["trust","debt"],colors:["#44ff88","#ff5555"]},{title:"Epistemic",keys:["ea","ca"],colors:["#9988ff","#cc99ff"]},{title:"Population",keys:["pop"],colors:["#ffdd00"]}].map(({title,keys,colors})=>h("div",{key:title,style:{...pnl,marginBottom:12}},h("div",{style:{color:T.label,fontSize:11,fontWeight:"bold",marginBottom:6}},title),h(MiniLine,{data:simRef.current?.fullHistory||[],keys,colors,ht:100})))
+    ),
+
+    // Science Hub
+    showScience&&h(Overlay,{zIndex:25},
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14,borderBottom:"1px solid #1e3050",paddingBottom:12}},
+        h("div",{style:{color:T.cyan,fontSize:14,fontWeight:"bold",letterSpacing:2}},"🔬 SCIENCE HUB"),
+        h("div",{style:{display:"flex",gap:5,alignItems:"center",flexWrap:"wrap"}},
+          h(NumInput,{label:"seed",val:sciCfg.seed,onChange:v=>setSciCfg(c=>({...c,seed:v})),min:0,max:999999,w:70}),
+          ...[["hypotheses","Hypotheses"],["custom","Custom"],["factorial","Factorial"],["trajectory","Trajectory"],["lag","Lag"],["sweep","Repair Sweep"]].map(([k,l])=>h(Btn,{key:k,active:sciTab===k,onClick:()=>setSciTab(k),label:l,color:T.cyan})),
+          h(Btn,{onClick:()=>setShowScience(false),label:"✕",color:T.red})
+        )
+      ),
+      hypRunning&&h("div",{style:{color:T.orange,fontSize:10,marginBottom:10}},`Running ${hypRunning}… ${sciProgress.current}/${sciProgress.total}`,h("div",{style:{width:"100%",height:4,background:"#1a2a40",borderRadius:2,marginTop:3}},h("div",{style:{height:"100%",width:`${sciProgress.total?sciProgress.current/sciProgress.total*100:0}%`,background:T.orange,borderRadius:2,transition:"width .3s"}}))),
+
+      // ── Hypotheses tab
+      sciTab==="hypotheses"&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+          h("div",{style:{color:T.muted,fontSize:10}},"Welch t-test with Cohen's d."),
+          h("div",{style:{display:"flex",gap:6,alignItems:"center"}},h(NumInput,{label:"N",val:sciCfg.nReps,onChange:v=>setSciCfg(c=>({...c,nReps:v})),min:5,max:50,w:46}),h(NumInput,{label:"Gen",val:sciCfg.depth,onChange:v=>setSciCfg(c=>({...c,depth:v})),min:50,max:600,step:50,w:52}),h(Btn,{onClick:runAllHyps,disabled:!!hypRunning,label:"▶ Run All",color:T.green}))
+        ),
+        h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},BUILTIN_HYPS.map(hyp=>h(HypCard,{key:hyp.id,hyp,res:allHypResults[hyp.id],onRun:()=>runHyp(hyp)})))
+      ),
+
+      // ── Custom tab
+      sciTab==="custom"&&h("div",null,
+        h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}},
+          h("div",{style:{color:T.muted,fontSize:10}},"Define your own hypotheses."),
+          h("div",{style:{display:"flex",gap:6}},h(NumInput,{label:"N",val:sciCfg.nReps,onChange:v=>setSciCfg(c=>({...c,nReps:v})),min:5,max:50,w:46}),h(NumInput,{label:"Gen",val:sciCfg.depth,onChange:v=>setSciCfg(c=>({...c,depth:v})),min:50,max:600,step:50,w:52}),h(Btn,{onClick:()=>setShowBuilder(v=>!v),active:showBuilder,label:"+ New",color:"#dd88ff"}))
+        ),
+        // Builder — ONLY pill buttons, zero selects
+        showBuilder&&h("div",{style:{...pnl,marginBottom:16,padding:"16px"}},
+          h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:12}},"HYPOTHESIS BUILDER"),
+          h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12,marginBottom:12}},
+            h("div",null,
+              h(Label,null,"Label (required)"),
+              h("input",{type:"text",value:draft.label,onChange:e=>setDraft(d=>({...d,label:e.target.value})),placeholder:"e.g. Contractarian vs anarchist",style:{width:"100%",background:"#0a1428",border:"1px solid #1e3050",color:T.primary,padding:"5px 8px",borderRadius:4,fontSize:11,fontFamily:"monospace"}}),
+              h("div",{style:{marginTop:8}}),
+              h(Label,null,"Citation"),
+              h("input",{type:"text",value:draft.cite,onChange:e=>setDraft(d=>({...d,cite:e.target.value})),placeholder:"e.g. Geometry of the Good §4",style:{width:"100%",background:"#0a1428",border:"1px solid #1e3050",color:T.primary,padding:"5px 8px",borderRadius:4,fontSize:11,fontFamily:"monospace"}}),
+              h("div",{style:{marginTop:8}}),
+              h(Label,null,"Prediction (optional)"),
+              h("input",{type:"text",value:draft.prediction,onChange:e=>setDraft(d=>({...d,prediction:e.target.value})),placeholder:"Auto-generated if blank",style:{width:"100%",background:"#0a1428",border:"1px solid #1e3050",color:T.primary,padding:"5px 8px",borderRadius:4,fontSize:11,fontFamily:"monospace"}}),
+              h("div",{style:{marginTop:12}}),
+              h(Label,null,"Outcome metric"),
+              h(Pills,{options:Object.entries(METRICS).map(([k,v])=>({value:k,label:v})),val:draft.metric,onChange:v=>setDraft(d=>({...d,metric:v}))}),
+              h("div",{style:{marginTop:10}}),
+              h(Label,null,"Direction"),
+              h(Pills,{options:[{value:"1",label:"A > B (higher)"},{value:"-1",label:"A < B (lower)"}],val:""+draft.direction,onChange:v=>setDraft(d=>({...d,direction:parseInt(v)}))})
+            ),
+            h(CondPanel,{label:"CONDITION A",cond:draft.condA,setCond:v=>setDraft(d=>({...d,condA:v}))}),
+            h(CondPanel,{label:"CONDITION B",cond:draft.condB,setCond:v=>setDraft(d=>({...d,condB:v}))})
+          ),
+          h("div",{style:{display:"flex",gap:8}},
+            h(Btn,{onClick:saveCustomHyp,disabled:!draft.label,label:"💾 Save",color:T.green}),
+            h(Btn,{onClick:()=>{setDraft({...BLANK_DRAFT});setShowBuilder(false);},label:"Cancel",color:T.muted})
+          )
+        ),
+        customHyps.length===0&&!showBuilder&&h("div",{style:{...pnl,color:T.dim,textAlign:"center",padding:"40px"}},'No custom hypotheses yet.'),
+        customHyps.length>0&&h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}},customHyps.map(hyp=>h(HypCard,{key:hyp.id,hyp,res:customResults[hyp.id],onRun:()=>runHyp(hyp),onDelete:()=>{setCustomHyps(p=>p.filter(h=>h.id!==hyp.id));setCustomResults(p=>{const n={...p};delete n[hyp.id];return n;});}})))
+      ),
+
+      // ── Factorial tab
+      sciTab==="factorial"&&h("div",{style:{display:"grid",gridTemplateColumns:"320px 1fr",gap:16}},
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},"2×2 FACTORIAL DESIGN"),
+          h("div",{style:{color:T.muted,fontSize:10,marginBottom:12,lineHeight:1.6}},"Factor A: two regimes. Factor B: one parameter at two levels. Tests main effects and interaction."),
+          h(Label,null,"Regime A1"),h(Pills,{options:Object.entries(REGIMES).map(([k,v])=>({value:k,label:v.label,color:v.color})),val:factCfg.regimeA1,onChange:v=>setFactCfg(c=>({...c,regimeA1:v}))}),
+          h("div",{style:{marginTop:8}}),h(Label,null,"Regime A2"),h(Pills,{options:Object.entries(REGIMES).map(([k,v])=>({value:k,label:v.label,color:v.color})),val:factCfg.regimeA2,onChange:v=>setFactCfg(c=>({...c,regimeA2:v}))}),
+          h("div",{style:{marginTop:8}}),h(Label,null,"Parameter (Factor B)"),h(Pills,{options:Object.entries(PARAM_SPACE).map(([k,v])=>({value:k,label:v.label})),val:factCfg.paramKey,onChange:v=>setFactCfg(c=>({...c,paramKey:v}))}),
+          factCfg.paramKey&&h("div",{style:{marginTop:8}},
+            h(Label,null,"B low level"),h(Cycler,{val:""+factCfg.paramLow,onChange:v=>setFactCfg(c=>({...c,paramLow:parseFloat(v)})),options:(PARAM_SPACE[factCfg.paramKey]?.levels||[]).map(v=>({value:""+v,label:PARAM_SPACE[factCfg.paramKey].fmt(v)}))}),
+            h("div",{style:{marginTop:6}}),h(Label,null,"B high level"),h(Cycler,{val:""+factCfg.paramHigh,onChange:v=>setFactCfg(c=>({...c,paramHigh:parseFloat(v)})),options:(PARAM_SPACE[factCfg.paramKey]?.levels||[]).map(v=>({value:""+v,label:PARAM_SPACE[factCfg.paramKey].fmt(v)}))})
+          ),
+          h("div",{style:{marginTop:8}}),h(Label,null,"Outcome metric"),h(Pills,{options:Object.entries(METRICS).map(([k,v])=>({value:k,label:v})),val:factCfg.metric,onChange:v=>setFactCfg(c=>({...c,metric:v}))}),
+          h("div",{style:{display:"flex",gap:8,marginTop:10,alignItems:"center"}},h(NumInput,{label:"N",val:factCfg.nReps,onChange:v=>setFactCfg(c=>({...c,nReps:v})),min:5,max:40,w:46}),h(NumInput,{label:"Gen",val:factCfg.depth,onChange:v=>setFactCfg(c=>({...c,depth:v})),min:50,max:500,step:50,w:52})),
+          h("div",{style:{marginTop:10}}),h(Btn,{onClick:runFact,disabled:!!hypRunning||!factCfg.paramKey,label:hypRunning==='factorial'?"Running…":"▶ Run",color:T.green})
+        ),
+        factResult?h("div",null,
+          h("div",{style:{...pnl,marginBottom:12}},
+            h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},`Cell Means: ${METRICS[factResult.metric]||factResult.metric}`),
+            h(FactorialGrid,{means:factResult.means,sds:factResult.sds,labelA1:factResult.labels.A1,labelA2:factResult.labels.A2,labelB1:factResult.labels.B1,labelB2:factResult.labels.B2}),
+            h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginTop:12}},
+              ...[["Main Effect A (Regime)",factResult.mainA,factResult.testA],["Main Effect B (Param)",factResult.mainB,factResult.testB],["Interaction A×B",factResult.intMean,{p:factResult.intP,d:0,t:0,valid:true}]].map(([title,val,test])=>h("div",{key:title,style:{...pnl,padding:"10px"}},h("div",{style:{color:T.cyan,fontSize:10,fontWeight:"bold",marginBottom:4}},title),h("div",{style:{fontSize:14,color:val>0?T.green:T.orange,fontWeight:"bold"}},(val>0?"+":"")+val.toFixed(4)),h("div",{style:{fontSize:9,color:T.label,marginTop:4}},`p=${test.p<0.001?"<0.001":test.p.toFixed(3)}`),h("div",{style:{fontSize:9,color:test.p<0.05?T.green:T.muted}},test.p<0.05?"Significant":"Not significant")))
+            )
+          )
+        ):h("div",{style:{...pnl,color:T.dim,textAlign:"center",padding:"60px"}},"Configure factors and run.")
+      ),
+
+      // ── Trajectory tab
+      sciTab==="trajectory"&&h("div",{style:{display:"grid",gridTemplateColumns:"300px 1fr",gap:16}},
+        h("div",null,
+          h("div",{style:{...pnl,marginBottom:12}},
+            h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},"TRAJECTORY ANALYSIS"),
+            h("div",{style:{color:T.muted,fontSize:10,marginBottom:12,lineHeight:1.6}},"Compares two conditions on AUC, slope, and time-to-threshold."),
+            h(Label,null,"Metric"),h(Pills,{options:Object.entries(METRICS).map(([k,v])=>({value:k,label:v})),val:trajCfg.metric,onChange:v=>setTrajCfg(c=>({...c,metric:v}))}),
+            h("div",{style:{marginTop:8}}),
+            h(Label,null,`Threshold: ${trajCfg.threshold}`),
+            h("input",{type:"range",min:0,max:1,step:0.05,value:trajCfg.threshold,onChange:e=>setTrajCfg(c=>({...c,threshold:parseFloat(e.target.value)})),style:{width:"100%",accentColor:T.cyan}}),
+            h("div",{style:{display:"flex",gap:8,marginTop:8}},h(NumInput,{label:"N",val:trajCfg.nReps,onChange:v=>setTrajCfg(c=>({...c,nReps:v})),min:5,max:40,w:46}),h(NumInput,{label:"Depth",val:trajCfg.depth,onChange:v=>setTrajCfg(c=>({...c,depth:v})),min:50,max:600,step:50,w:52})),
+            h("div",{style:{marginTop:10}}),h(Btn,{onClick:runTraj,disabled:!!hypRunning,label:hypRunning==='trajectory'?"Running…":"▶ Run",color:T.green})
+          ),
+          h(CondPanel,{label:"CONDITION A",cond:trajCfg.condA,setCond:v=>setTrajCfg(c=>({...c,condA:v}))}),
+          h("div",{style:{marginTop:8}}),
+          h(CondPanel,{label:"CONDITION B",cond:trajCfg.condB,setCond:v=>setTrajCfg(c=>({...c,condB:v}))})
+        ),
+        trajResult?h("div",null,
+          h("div",{style:{...pnl,marginBottom:12}},
+            h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},`Trajectory: ${METRICS[trajResult.metric]}`),
+            h(SeriesCompare,{seriesA:trajResult.repSeriesA,seriesB:trajResult.repSeriesB,metric:trajResult.metric,colorA:T.cyan,colorB:T.red,labelA:trajResult.condA.label||trajResult.condA.regime,labelB:trajResult.condB.label||trajResult.condB.regime,ht:110})
+          ),
+          h(StatCard,{label:"AUC (time-averaged value)",test:trajResult.testAUC,condALabel:trajResult.condA.label,condBLabel:trajResult.condB.label}),
+          h(StatCard,{label:"Slope (rate of change / gen)",test:trajResult.testSlope,condALabel:trajResult.condA.label,condBLabel:trajResult.condB.label}),
+          h(StatCard,{label:`Time-to-threshold (gen to cross ${trajResult.threshold})`,test:trajResult.testTTI,condALabel:trajResult.condA.label,condBLabel:trajResult.condB.label})
+        ):h("div",{style:{...pnl,color:T.dim,textAlign:"center",padding:"60px"}},"Configure conditions and run.")
+      ),
+
+      // ── Lag tab
+      sciTab==="lag"&&h("div",{style:{display:"grid",gridTemplateColumns:"300px 1fr",gap:16}},
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},"LAG ANALYSIS"),
+          h("div",{style:{color:T.muted,fontSize:10,marginBottom:10,lineHeight:1.6}},"Tests whether rising contradiction debt at t predicts moral energy decline at t+k."),
+          h(Label,null,"Regime"),
+          h(Pills,{options:Object.entries(REGIMES).map(([k,v])=>({value:k,label:v.label,color:v.color})),val:sciCfg.lagRegime,onChange:v=>setSciCfg(c=>({...c,lagRegime:v}))}),
+          h(SliderEl,{label:"Depth (gen)",min:100,max:800,step:50,val:sciCfg.lagDepth,onChange:v=>setSciCfg(c=>({...c,lagDepth:v})),fmt:v=>""+Math.round(v)}),
+          h(Btn,{onClick:runLag,disabled:!!hypRunning,label:hypRunning==='lag'?"Running…":"▶ Run",color:T.cyan})
+        ),
+        h("div",{style:{...pnl}},lagResult?h("div",null,h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}},h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold"}},"Debt[t] → Energy Decline[t+k]"),h(VerdictBadge,{verdict:lagResult.verdict})),h(LagChart,{lagCorr:lagResult.lagCorr,peak:lagResult.peak}),h("div",{style:{marginTop:8,fontSize:10,color:T.label,lineHeight:1.8}},`Peak r=${lagResult.peak.r.toFixed(3)} at lag k=${lagResult.peak.lag}. `,lagResult.peak.r>0.3&&lagResult.peak.lag>0?`Debt is a leading indicator by ${lagResult.peak.lag} generations.`:"No strong leading relationship.")):h("div",{style:{color:T.dim,textAlign:"center",marginTop:60}},"Run the analysis to see results."))
+      ),
+
+      // ── Sweep tab
+      sciTab==="sweep"&&h("div",{style:{display:"grid",gridTemplateColumns:"280px 1fr",gap:16}},
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:12,fontWeight:"bold",marginBottom:8}},"REPAIR SWEEP"),
+          h("div",{style:{color:T.muted,fontSize:10,marginBottom:10,lineHeight:1.6}},"Varies moral repair rate as the sole parameter."),
+          h(Label,null,"Regimes"),
+          h(Pills,{options:Object.entries(REGIMES).map(([k,v])=>({value:k,label:v.label,color:v.color})),val:sciCfg.sweepRegimes[0]||"pluralist",onChange:()=>{}}),
+          h("div",{style:{display:"flex",flexWrap:"wrap",gap:4,marginTop:4}},Object.entries(REGIMES).map(([k,v])=>h("button",{key:k,onClick:()=>setSciCfg(c=>({...c,sweepRegimes:c.sweepRegimes.includes(k)?c.sweepRegimes.filter(r=>r!==k):[...c.sweepRegimes,k]})),style:{padding:"3px 9px",borderRadius:10,fontSize:9,fontFamily:"monospace",border:`1px solid ${sciCfg.sweepRegimes.includes(k)?v.color:"#2a3a50"}`,background:sciCfg.sweepRegimes.includes(k)?`${v.color}22`:"transparent",color:sciCfg.sweepRegimes.includes(k)?v.color:T.dim,cursor:"pointer"}},v.label))),
+          h(SliderEl,{label:"Generations",min:50,max:400,step:50,val:sciCfg.depth,onChange:v=>setSciCfg(c=>({...c,depth:v})),fmt:v=>""+Math.round(v)}),
+          h(SliderEl,{label:"Reps per point",min:3,max:15,step:1,val:sciCfg.sweepReps,onChange:v=>setSciCfg(c=>({...c,sweepReps:v})),fmt:v=>""+Math.round(v)}),
+          h(Btn,{onClick:runSweep,disabled:!!hypRunning||sciCfg.sweepRegimes.length===0,label:hypRunning==='sweep'?"Running…":"▶ Run",color:T.green})
+        ),
+        sweepResult?h("div",null,h("div",{style:{...pnl,marginBottom:12}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:6}},"Moral Energy vs Repair Rate"),h(SweepChart,{chartData:sweepResult.chartData,regimes:sweepResult.regimes})),h("div",{style:{...pnl}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:6}},"Sensitivity (slope)"),h(HBar,{data:sweepResult.slopes,valueKey:"slope",labelKey:"label",colorKey:"color",ht:sweepResult.slopes.length*30+20}),h(Btn,{onClick:()=>dlCSV(sweepResult.chartData,"repair_sweep.csv"),label:"⬇ CSV",color:T.green}))):h("div",{style:{...pnl,color:T.dim,textAlign:"center",paddingTop:60}},"Configure and run.")
+      )
+    ),
+
+    // Experiment overlays
+    expState==='setup'&&h(Overlay,null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}},h("div",{style:{color:T.cyan,fontSize:14,fontWeight:"bold"}},"⚗ EXPERIMENT DESIGNER"),h(Btn,{onClick:()=>setExpState('idle'),label:"✕ Cancel",color:T.red})),
+      h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14,marginBottom:16}},
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:10}},"CONFIGURATION"),
+          h("div",{style:{marginBottom:10}},h(Label,null,"Random Seed"),h("input",{type:"number",value:expCfg.seed,onChange:e=>setExpCfg(c=>({...c,seed:+e.target.value})),style:{width:"100%",background:"#0a1428",border:"1px solid #1e3050",color:T.cyan,padding:"5px 8px",borderRadius:4,fontSize:13,fontFamily:"monospace"}})),
+          h(SliderEl,{label:"Generations per run",min:50,max:1000,step:50,val:expCfg.depth,onChange:v=>setExpCfg(c=>({...c,depth:v})),fmt:v=>""+Math.round(v)}),
+          h("div",{style:{marginTop:10,padding:"8px",background:"rgba(0,200,100,0.08)",borderRadius:6,border:`1px solid ${estimatedRuns>500?"#ff550040":"#00cc6640"}`}},h("div",{style:{color:estimatedRuns>500?T.orange:T.green,fontSize:12,fontWeight:"bold"}},`~${estimatedRuns} runs`))
+        ),
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:10}},"REGIMES"),
+          ...Object.entries(REGIMES).map(([k,v])=>h("label",{key:k,style:{display:"flex",alignItems:"center",gap:8,marginBottom:7,cursor:"pointer"}},h("input",{type:"checkbox",checked:expCfg.regimes.includes(k),onChange:e=>setExpCfg(c=>({...c,regimes:e.target.checked?[...c.regimes,k]:c.regimes.filter(r=>r!==k)})),style:{accentColor:v.color}}),h("span",{style:{color:v.color,fontSize:10}},v.label))),
+          h("div",{style:{display:"flex",gap:6,marginTop:6}},h("button",{onClick:()=>setExpCfg(c=>({...c,regimes:Object.keys(REGIMES)})),style:{fontSize:9,color:T.muted,background:"transparent",border:"1px solid #1e3050",borderRadius:8,padding:"3px 8px",cursor:"pointer"}},"All"),h("button",{onClick:()=>setExpCfg(c=>({...c,regimes:[]})),style:{fontSize:9,color:T.muted,background:"transparent",border:"1px solid #1e3050",borderRadius:8,padding:"3px 8px",cursor:"pointer"}},"None"))
+        ),
+        h("div",{style:{...pnl}},
+          h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:4}},"PARAMETERS TO VARY"),
+          h("div",{style:{color:T.muted,fontSize:9,marginBottom:10}},"3 levels each, all combinations crossed."),
+          ...Object.entries(PARAM_SPACE).map(([k,v])=>h("label",{key:k,style:{display:"block",marginBottom:10,cursor:"pointer"}},h("div",{style:{display:"flex",alignItems:"center",gap:8}},h("input",{type:"checkbox",checked:!!expCfg.params[k],onChange:e=>setExpCfg(c=>({...c,params:{...c.params,[k]:e.target.checked}})),style:{accentColor:T.cyan}}),h("span",{style:{color:T.label,fontSize:10,fontWeight:"bold"}},v.label)),h("div",{style:{fontSize:8,color:T.dim,marginLeft:20,marginTop:1}},`${v.fmt(v.levels[0])} / ${v.fmt(v.levels[1])} / ${v.fmt(v.levels[2])}`)))
+        )
+      ),
+      h("div",{style:{display:"flex",justifyContent:"center"}},h("button",{onClick:startExp,disabled:estimatedRuns===0||expCfg.regimes.length===0,style:{padding:"12px 40px",borderRadius:24,background:estimatedRuns>0?"rgba(0,200,100,0.15)":"transparent",border:`1px solid ${estimatedRuns>0?T.green:"#2a3a50"}`,color:estimatedRuns>0?T.green:T.dim,cursor:estimatedRuns>0?"pointer":"not-allowed",fontSize:13,fontFamily:"monospace",fontWeight:"bold"}},`▶ Run ${estimatedRuns} × ${expCfg.depth} gen`))
+    ),
+
+    expState==='running'&&h(Overlay,null,h("div",{style:{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"80%",gap:20}},h("div",{style:{color:T.cyan,fontSize:16,fontWeight:"bold"}},"Running Experiments"),h("div",{style:{color:T.primary}},`${expProgress.current} / ${expProgress.total}`),h("div",{style:{width:400,height:10,background:"#1a2a40",borderRadius:5,overflow:"hidden"}},h("div",{style:{height:"100%",width:`${expProgress.total?expProgress.current/expProgress.total*100:0}%`,background:T.green,borderRadius:5}})),h(Btn,{onClick:()=>{cancelRef.current=true;},label:"Cancel",color:T.red}))),
+
+    expState==='results'&&expAnalysis&&h(Overlay,null,
+      h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}},h("div",{style:{color:T.cyan,fontSize:13,fontWeight:"bold"}},"RESULTS ",h("span",{style:{color:T.dim,fontSize:9}},`seed:${expCfg.seed} · ${expCfg.depth}gen · ${expResults.length} runs`)),h("div",{style:{display:"flex",gap:6}},h(Btn,{onClick:()=>dlCSV(expResults,"exp_wide.csv"),label:"⬇ Wide CSV",color:T.green}),h(Btn,{onClick:()=>dlCSV(expResults.map((r,i)=>({run_id:i+1,seed:expCfg.seed,...r})),"exp_tidy.csv"),label:"⬇ Tidy CSV",color:"#44ffcc"}),h(Btn,{onClick:()=>setExpState('setup'),label:"New",color:T.cyan}),h(Btn,{onClick:()=>setExpState('idle'),label:"Close",color:T.red}))),
+      h("div",{style:{...pnl,marginBottom:12}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:8}},"KEY FINDINGS"),...expAnalysis.findings.map((f,i)=>h("div",{key:i,style:{color:T.primary,fontSize:11,lineHeight:1.75,marginBottom:8,paddingLeft:12,borderLeft:`2px solid ${T.cyan}`}},f))),
+      h("div",{style:{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12,marginBottom:12}},h("div",{style:{...pnl}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:6}},"Moral Energy by Regime"),h(HBar,{data:expAnalysis.regimeAvg,valueKey:"energy",labelKey:"label",colorKey:"color",ht:expAnalysis.regimeAvg.length*30+20})),h("div",{style:{...pnl}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:6}},"Fulfillment Rate by Regime"),h(HBar,{data:[...expAnalysis.regimeAvg].sort((a,b)=>b.fulfillRate-a.fulfillRate),valueKey:"fulfillRate",labelKey:"label",colorKey:"color",ht:expAnalysis.regimeAvg.length*30+20}))),
+      expAnalysis.paramSensitivity.length>0&&h("div",{style:{...pnl,marginBottom:12}},h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:8}},"Parameter Sensitivity"),h("div",{style:{display:"flex",gap:10,flexWrap:"wrap"}},expAnalysis.paramSensitivity.map(ps=>h("div",{key:ps.key,style:{flex:"1 1 150px"}},h("div",{style:{fontSize:9,color:T.muted,marginBottom:2}},ps.label," ",h("span",{style:{color:ps.trend>0?T.green:T.orange}},(ps.trend>0?"+":"")+((ps.range*100).toFixed(1))+"pp")),h(MiniBar,{data:ps.levels.map(l=>({label:l.label,avg:l.avg})),valueKey:"avg",labelKey:"label",color:ps.trend>0?T.green:T.orange}))))),
+      h("div",{style:{...pnl}},
+        h("div",{style:{color:T.cyan,fontSize:11,fontWeight:"bold",marginBottom:8}},`Raw Data (top ${Math.min(30,expResults.length)} of ${expResults.length})`),
+        h("div",{style:{overflowX:"auto"}},h("table",{style:{width:"100%",borderCollapse:"collapse",fontSize:9}},
+          h("thead",null,h("tr",null,...['regime','moralEnergy','trust','debt','ea','fulfillRate',...expParamCols].map(col=>h("th",{key:col,onClick:()=>{if(sortKey===col)setSortDir(d=>d*-1);else{setSortKey(col);setSortDir(-1);}},style:{padding:"4px 6px",textAlign:"left",borderBottom:"1px solid #1e3050",color:sortKey===col?T.cyan:T.muted,cursor:"pointer",whiteSpace:"nowrap",userSelect:"none"}},col,(sortKey===col?(sortDir===-1?" ↓":" ↑"):"")))),),
+          h("tbody",null,...sortedResults.slice(0,30).map((r,i)=>h("tr",{key:i,style:{background:i%2===0?"transparent":"rgba(255,255,255,.02)"}},
+            ...['regime','moralEnergy','trust','debt','ea','fulfillRate',...expParamCols].map(col=>h("td",{key:col,style:{padding:"3px 6px",borderBottom:"1px solid #0a1428",color:col==='regime'?(REGIMES[r[col]]?.color||T.primary):T.primary,whiteSpace:"nowrap"}},col==='regime'?(REGIMES[r[col]]?.label||r[col]):typeof r[col]==='number'?r[col].toFixed(3):r[col]||''))
+          )))
+        ))
+      )
+    ),
+
+    // Regime selector
+    h("div",{style:{position:"absolute",bottom:54,left:"50%",transform:"translateX(-50%)",display:"flex",gap:4,flexWrap:"wrap",justifyContent:"center"}},
+      ...Object.entries(REGIMES).map(([k,v])=>h(Btn,{key:k,active:regime===k,onClick:()=>handleRegime(k),label:v.label,color:v.color}))
+    ),
+
+    // Controls
+    h("div",{style:{position:"absolute",bottom:14,left:"50%",transform:"translateX(-50%)",background:"rgba(3,6,18,0.95)",border:"1px solid #1e3050",borderRadius:28,padding:"7px 16px",display:"flex",alignItems:"center",gap:5,flexWrap:"wrap",justifyContent:"center"}},
+      h(Btn,{active:showParams,onClick:()=>setShowParams(v=>!v),label:"Params",color:"#00aaff"}),
+      h(Btn,{active:showScience,onClick:()=>setShowScience(v=>!v),label:"Science",color:"#dd88ff"}),
+      h(Btn,{active:expState==='setup'||expState==='results',onClick:()=>setExpState(s=>s==='idle'?'setup':'idle'),label:"Experiment",color:"#8899ff"}),
+      h(Btn,{active:showHistory,onClick:()=>setShowHistory(v=>!v),label:"History",color:T.green}),
+      h(Btn,{onClick:()=>dlCSV(simRef.current?.fullHistory||[],"simethica.csv"),label:"CSV",color:T.green}),
+      h("div",{style:{width:1,height:18,background:"#1e3050"}}),
+      h(Btn,{onClick:handlePause,label:paused?"Play":"Pause",color:paused?T.orange:T.muted}),
+      ...[1,2,4].map(s=>h(Btn,{key:s,active:speed===s,onClick:()=>handleSpeed(s),label:`${s}x`,color:T.purple})),
+      h("div",{style:{width:1,height:18,background:"#1e3050"}}),
+      h(Btn,{onClick:handleReseed,label:"Reseed",color:T.muted}),
+      h(Btn,{active:showCharts,onClick:()=>setShowCharts(v=>!v),label:"Sparks",color:T.muted})
+    ),
+
+    h("div",{style:{position:"absolute",bottom:14,left:14,fontSize:9,lineHeight:1.95,pointerEvents:"none"}},
+      h("div",{style:{color:T.cyan}},"High moral energy"),h("div",{style:{color:T.orange}},"Stressed"),h("div",{style:{color:T.red}},"Collapsed"),h("div",{style:{color:"white"}},"Newborn"),
+      h("div",{style:{color:T.dim,marginTop:2}},"Drag orbit / Scroll zoom")
+    )
+  );
+}
